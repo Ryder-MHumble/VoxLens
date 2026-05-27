@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="VoxLens">
+  <defs>
+    <linearGradient id="tile" x1="9" y1="8" x2="56" y2="57" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.45" stop-color="#F2F7FF"/>
+      <stop offset="1" stop-color="#FFF0F8"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="10" y1="9" x2="55" y2="55" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7EDAFF"/>
+      <stop offset="0.52" stop-color="#BB8EFF"/>
+      <stop offset="1" stop-color="#FF97C7"/>
+    </linearGradient>
+    <linearGradient id="leftBlade" x1="14" y1="12" x2="34" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#72D6FF"/>
+      <stop offset="0.5" stop-color="#A79DFF"/>
+      <stop offset="1" stop-color="#D582FF"/>
+    </linearGradient>
+    <linearGradient id="rightBlade" x1="50" y1="12" x2="31" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF9DCE"/>
+      <stop offset="0.52" stop-color="#BD8BFF"/>
+      <stop offset="1" stop-color="#76D8FF"/>
+    </linearGradient>
+    <radialGradient id="pupil" cx="40%" cy="25%" r="78%">
+      <stop offset="0" stop-color="#7050BA"/>
+      <stop offset="0.55" stop-color="#3D2A66"/>
+      <stop offset="1" stop-color="#201A36"/>
+    </radialGradient>
+    <linearGradient id="coral" x1="50" y1="17" x2="58" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFC28F"/>
+      <stop offset="1" stop-color="#FF667C"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="54" height="54" rx="16" fill="url(#tile)"/>
+  <rect x="6.25" y="6.25" width="51.5" height="51.5" rx="14.75" fill="none" stroke="url(#rim)" stroke-width="2.5"/>
+  <path d="M17 16c3-2.1 7.2-1 9 2.1l7 11.8-5.9 10.2-12-17c-1.7-2.4-.9-5.2 1.9-7.1Z" fill="url(#leftBlade)"/>
+  <path d="M47 16c-3-2.1-7.2-1-9 2.1l-7 11.8 5.9 10.2 12-17c1.7-2.4.9-5.2-1.9-7.1Z" fill="url(#rightBlade)"/>
+  <path d="M26.8 39.6 32 29.9l5.2 9.7-3.2 6c-.9 1.7-3.1 1.7-4 0l-3.2-6Z" fill="#D9B7FF"/>
+  <circle cx="32" cy="30" r="11.4" fill="url(#pupil)"/>
+  <path d="M29.3 24.6v10.8c0 1.3 1.5 2.1 2.6 1.4l8.5-5.4c1-.7 1-2.1 0-2.8l-8.5-5.4c-1.1-.7-2.6.1-2.6 1.4Z" fill="#FFFFFF"/>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="2" opacity="0.76">
+    <path d="M18.7 29v4"/>
+    <path d="M22.3 26.5v9"/>
+  </g>
+  <path d="M41.8 20.8c4-2.6 8.2-1.8 11.5 1.9" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" opacity="0.72"/>
+  <circle cx="55" cy="23.5" r="3.6" fill="url(#coral)"/>
+  <circle cx="55" cy="23.5" r="1.25" fill="#FFFFFF" opacity="0.9"/>
+</svg>

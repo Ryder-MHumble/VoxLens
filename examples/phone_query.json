@@ -1,0 +1,6 @@
+﻿{
+  "need": "我想买一台拍照好的安卓旗舰手机，预算5000左右",
+  "query": "安卓旗舰手机 5000 拍照 评测",
+  "platforms": ["youtube", "bilibili", "xiaohongshu", "douyin"],
+  "limit": 5
+}

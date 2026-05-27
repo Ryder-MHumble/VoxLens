@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="VoxLens brand card">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFDFF"/>
+      <stop offset="0.52" stop-color="#F7F4FF"/>
+      <stop offset="1" stop-color="#FFF4F8"/>
+    </linearGradient>
+    <radialGradient id="blueBlob" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(270 505) rotate(-26) scale(420 260)">
+      <stop offset="0" stop-color="#9EE5FF" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#9EE5FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pinkBlob" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(945 118) rotate(18) scale(420 250)">
+      <stop offset="0" stop-color="#FFC3DF" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#FFC3DF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="violetBlob" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(620 250) rotate(10) scale(380 250)">
+      <stop offset="0" stop-color="#C4A0FF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#C4A0FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="18" y1="16" x2="112" y2="113" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.96"/>
+      <stop offset="0.42" stop-color="#F4F8FF" stop-opacity="0.76"/>
+      <stop offset="1" stop-color="#FFF0F7" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="20" y1="18" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8EDFFF"/>
+      <stop offset="0.5" stop-color="#C994FF"/>
+      <stop offset="1" stop-color="#FF9FC9"/>
+    </linearGradient>
+    <linearGradient id="leftBlade" x1="27" y1="24" x2="68" y2="91" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#79D7FF"/>
+      <stop offset="0.5" stop-color="#AFA0FF"/>
+      <stop offset="1" stop-color="#D986FF"/>
+    </linearGradient>
+    <linearGradient id="rightBlade" x1="101" y1="25" x2="62" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF9FCF"/>
+      <stop offset="0.52" stop-color="#C28DFF"/>
+      <stop offset="1" stop-color="#79D8FF"/>
+    </linearGradient>
+    <linearGradient id="hinge" x1="50" y1="57" x2="78" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7FF" stop-opacity="0.9"/>
+      <stop offset="0.48" stop-color="#C7A6FF" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#7ADFFF" stop-opacity="0.88"/>
+    </linearGradient>
+    <radialGradient id="pupil" cx="40%" cy="26%" r="78%">
+      <stop offset="0" stop-color="#6A4BB8"/>
+      <stop offset="0.52" stop-color="#3D2A66"/>
+      <stop offset="1" stop-color="#201A36"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="0.42" stop-color="#D9F3FF" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#FFD4E7" stop-opacity="0.5"/>
+    </radialGradient>
+    <linearGradient id="coral" x1="100" y1="34" x2="116" y2="51" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFC28F"/>
+      <stop offset="1" stop-color="#FF667C"/>
+    </linearGradient>
+    <linearGradient id="word" x1="520" y1="270" x2="985" y2="365" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#251D3D"/>
+      <stop offset="0.48" stop-color="#6E42B2"/>
+      <stop offset="1" stop-color="#D355CA"/>
+    </linearGradient>
+    <filter id="softShadow" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="26" stdDeviation="30" flood-color="#9F63FF" flood-opacity="0.23"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#63D1FF" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#blueBlob)"/>
+  <rect width="1200" height="630" fill="url(#pinkBlob)"/>
+  <rect width="1200" height="630" fill="url(#violetBlob)"/>
+  <path d="M123 461c147-88 255-57 364 33 118 96 259 102 407 18" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round" opacity="0.38"/>
+  <g transform="translate(148 118) scale(2.72)" filter="url(#softShadow)">
+    <circle cx="64" cy="64" r="58" fill="url(#halo)" opacity="0.84"/>
+    <rect x="17" y="17" width="94" height="94" rx="28" fill="url(#tile)"/>
+    <rect x="18.5" y="18.5" width="91" height="91" rx="26.5" fill="none" stroke="url(#rim)" stroke-width="3" stroke-opacity="0.72"/>
+    <path d="M34.2 31.6c5.9-4 14-2.1 17.7 4.1L65 57.8 53.3 78.1 29.7 44.8c-3.2-4.6-1.4-10.2 4.5-13.2Z" fill="url(#leftBlade)"/>
+    <path d="M93.8 31.6c-5.9-4-14-2.1-17.7 4.1L63 57.8l11.7 20.3 23.6-33.3c3.2-4.6 1.4-10.2-4.5-13.2Z" fill="url(#rightBlade)"/>
+    <path d="M52.8 76.9 64 57.8l11.2 19.1-7.4 13.5c-1.7 3.2-6.1 3.2-7.8 0l-7.2-13.5Z" fill="url(#hinge)"/>
+    <circle cx="64" cy="59" r="22" fill="url(#pupil)"/>
+    <circle cx="64" cy="59" r="21" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>
+    <path d="M58.5 48.8v20.4c0 2.6 2.9 4.1 5.1 2.6l16.2-10.2c2-1.3 2-4.1 0-5.4L63.6 46.2c-2.2-1.5-5.1 0-5.1 2.6Z" fill="#FFFFFF"/>
+    <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="4" opacity="0.78">
+      <path d="M38 57.5v9"/>
+      <path d="M45 52.5v19"/>
+      <path d="M52 58.5v7"/>
+    </g>
+    <path d="M83.5 41.5c8.5-5.8 18.1-4.3 25 3.8" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity="0.74"/>
+    <circle cx="110" cy="46" r="6.5" fill="url(#coral)"/>
+    <circle cx="110" cy="46" r="2.5" fill="#FFFFFF" opacity="0.9"/>
+    <path d="M88 84h11c2.2 0 4-1.8 4-4v-10" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.65"/>
+    <circle cx="88" cy="84" r="3.4" fill="#FFFFFF" opacity="0.82"/>
+  </g>
+  <text x="536" y="274" fill="url(#word)" font-family="Inter, Manrope, Arial, sans-serif" font-size="116" font-weight="760" letter-spacing="-5">VoxLens</text>
+  <text x="542" y="338" fill="#40334F" font-family="Noto Sans SC, Microsoft YaHei, sans-serif" font-size="38" font-weight="500" letter-spacing="2">研究，不止文字</text>
+  <text x="542" y="405" fill="#6F627B" font-family="Inter, Manrope, Arial, sans-serif" font-size="27" font-weight="500">Watch videos. Listen to comments. Cite evidence.</text>
+  <g transform="translate(542 450)">
+    <rect x="0" y="0" width="156" height="46" rx="23" fill="#FFFFFF" fill-opacity="0.64" stroke="#FFFFFF" stroke-opacity="0.82"/>
+    <circle cx="27" cy="23" r="5" fill="#78D8FF"/>
+    <text x="46" y="30" fill="#51435F" font-family="Inter, Manrope, Arial, sans-serif" font-size="18" font-weight="650">video</text>
+    <rect x="174" y="0" width="160" height="46" rx="23" fill="#FFFFFF" fill-opacity="0.64" stroke="#FFFFFF" stroke-opacity="0.82"/>
+    <path d="M200 17v12M209 13v20M218 17v12" stroke="#C28DFF" stroke-width="4" stroke-linecap="round"/>
+    <text x="239" y="30" fill="#51435F" font-family="Inter, Manrope, Arial, sans-serif" font-size="18" font-weight="650">voice</text>
+    <rect x="352" y="0" width="178" height="46" rx="23" fill="#FFFFFF" fill-opacity="0.64" stroke="#FFFFFF" stroke-opacity="0.82"/>
+    <circle cx="380" cy="23" r="6" fill="#FF7A82"/>
+    <path d="M392 23h18" stroke="#A18AAE" stroke-width="3" stroke-linecap="round"/>
+    <text x="426" y="30" fill="#51435F" font-family="Inter, Manrope, Arial, sans-serif" font-size="18" font-weight="650">evidence</text>
+  </g>
+</svg>

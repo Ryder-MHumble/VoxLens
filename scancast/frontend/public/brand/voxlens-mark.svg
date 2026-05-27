@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="6 6 116 116" role="img" aria-label="VoxLens logo mark">
+  <defs>
+    <linearGradient id="tile" x1="18" y1="16" x2="112" y2="113" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.96"/>
+      <stop offset="0.42" stop-color="#F4F8FF" stop-opacity="0.76"/>
+      <stop offset="1" stop-color="#FFF0F7" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="20" y1="18" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8EDFFF"/>
+      <stop offset="0.5" stop-color="#C994FF"/>
+      <stop offset="1" stop-color="#FF9FC9"/>
+    </linearGradient>
+    <linearGradient id="leftBlade" x1="27" y1="24" x2="68" y2="91" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#79D7FF"/>
+      <stop offset="0.5" stop-color="#AFA0FF"/>
+      <stop offset="1" stop-color="#D986FF"/>
+    </linearGradient>
+    <linearGradient id="rightBlade" x1="101" y1="25" x2="62" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF9FCF"/>
+      <stop offset="0.52" stop-color="#C28DFF"/>
+      <stop offset="1" stop-color="#79D8FF"/>
+    </linearGradient>
+    <linearGradient id="hinge" x1="50" y1="57" x2="78" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7FF" stop-opacity="0.9"/>
+      <stop offset="0.48" stop-color="#C7A6FF" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#7ADFFF" stop-opacity="0.88"/>
+    </linearGradient>
+    <radialGradient id="pupil" cx="40%" cy="26%" r="78%">
+      <stop offset="0" stop-color="#6A4BB8"/>
+      <stop offset="0.52" stop-color="#3D2A66"/>
+      <stop offset="1" stop-color="#201A36"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="0.42" stop-color="#D9F3FF" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#FFD4E7" stop-opacity="0.5"/>
+    </radialGradient>
+    <linearGradient id="coral" x1="100" y1="34" x2="116" y2="51" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFC28F"/>
+      <stop offset="1" stop-color="#FF667C"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#B06DFF" flood-opacity="0.22"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#5FCFFF" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="58" fill="url(#halo)" opacity="0.84"/>
+  <g filter="url(#softShadow)">
+    <rect x="17" y="17" width="94" height="94" rx="28" fill="url(#tile)"/>
+    <rect x="18.5" y="18.5" width="91" height="91" rx="26.5" fill="none" stroke="url(#rim)" stroke-width="3" stroke-opacity="0.72"/>
+    <path d="M34.2 31.6c5.9-4 14-2.1 17.7 4.1L65 57.8 53.3 78.1 29.7 44.8c-3.2-4.6-1.4-10.2 4.5-13.2Z" fill="url(#leftBlade)"/>
+    <path d="M93.8 31.6c-5.9-4-14-2.1-17.7 4.1L63 57.8l11.7 20.3 23.6-33.3c3.2-4.6 1.4-10.2-4.5-13.2Z" fill="url(#rightBlade)"/>
+    <path d="M52.8 76.9 64 57.8l11.2 19.1-7.4 13.5c-1.7 3.2-6.1 3.2-7.8 0l-7.2-13.5Z" fill="url(#hinge)"/>
+    <circle cx="64" cy="59" r="22" fill="url(#pupil)"/>
+    <circle cx="64" cy="59" r="21" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>
+    <path d="M58.5 48.8v20.4c0 2.6 2.9 4.1 5.1 2.6l16.2-10.2c2-1.3 2-4.1 0-5.4L63.6 46.2c-2.2-1.5-5.1 0-5.1 2.6Z" fill="#FFFFFF"/>
+    <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="4" opacity="0.78">
+      <path d="M38 57.5v9"/>
+      <path d="M45 52.5v19"/>
+      <path d="M52 58.5v7"/>
+    </g>
+    <path d="M83.5 41.5c8.5-5.8 18.1-4.3 25 3.8" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity="0.74"/>
+    <circle cx="110" cy="46" r="6.5" fill="url(#coral)"/>
+    <circle cx="110" cy="46" r="2.5" fill="#FFFFFF" opacity="0.9"/>
+    <path d="M88 84h11c2.2 0 4-1.8 4-4v-10" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.65"/>
+    <circle cx="88" cy="84" r="3.4" fill="#FFFFFF" opacity="0.82"/>
+  </g>
+</svg>

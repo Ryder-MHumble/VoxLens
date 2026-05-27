@@ -1,0 +1,17 @@
+﻿node_modules/
+dist/
+.venv/
+.env
+*.env
+__pycache__/
+*.pyc
+runs/
+reports/*.json
+external/MediaCrawler/
+scancast/frontend/node_modules/
+scancast/frontend/dist/
+scancast/frontend/.tanstack/
+scancast/frontend/.wrangler/
+scancast/.venv/
+scancast/backend/runs/
+scancast/runs/
