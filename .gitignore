@@ -7,7 +7,6 @@ __pycache__/
 *.pyc
 runs/
 reports/*.json
-external/MediaCrawler/
 scancast/frontend/node_modules/
 scancast/frontend/dist/
 scancast/frontend/.tanstack/

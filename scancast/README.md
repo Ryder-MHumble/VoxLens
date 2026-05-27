@@ -10,6 +10,7 @@ VoxLens backend/frontend lives in this directory. The product README at the repo
 - `backend/app/services/llm_synthesis.py`: OpenRouter synthesis layer. Reads `OPENROUTER_API_KEY` and uses `OPENROUTER_MODEL=z-ai/glm-5.1` by default.
 - `backend/app/services/quality.py`: coverage, citation accuracy, evidence strength and conclusion-risk evaluation.
 - `backend/app/providers/registry.py`: provider boundary. `local` keeps OpenCLI/MediaCrawler for dev; `online` can point to a production provider service.
+- `../external/MediaCrawler/`: vendored NanmiCoder/MediaCrawler component used by local Chinese-platform crawlers; upstream revision is recorded in `../external/MediaCrawler.UPSTREAM_REVISION`.
 - `frontend/`: TanStack/Vite frontend that creates a run, streams run events, and can reopen an existing run by URL.
 
 ## Environment
@@ -38,6 +39,18 @@ VOXLENS_WEIBO_COOKIE=
 Do not commit `.env` or any API key.
 
 ## Run Locally
+
+Install all local dependencies from the repository root first:
+
+```bash
+./scripts/bootstrap.sh
+```
+
+Windows PowerShell:
+
+```powershell
+.\scripts\bootstrap.ps1
+```
 
 Backend:
 
@@ -100,4 +113,3 @@ uv run python -m compileall -f backend
 cd "C:\Users\hp\Documents\VoxLens\scancast\frontend"
 pnpm build
 ```
-

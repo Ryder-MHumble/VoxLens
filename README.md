@@ -114,6 +114,21 @@ AI 陪伴
 
 ## 内部试用启动
 
+仓库已内置 MediaCrawler 组件，位置为 `external/MediaCrawler`，对应上游版本记录在
+`external/MediaCrawler.UPSTREAM_REVISION`。首次启动前建议先安装所有本地依赖：
+
+```bash
+cd /path/to/VoxLens
+./scripts/bootstrap.sh
+```
+
+Windows PowerShell：
+
+```powershell
+cd C:\path\to\VoxLens
+.\scripts\bootstrap.ps1
+```
+
 后端：
 
 ```powershell
@@ -145,4 +160,3 @@ VoxLens 处于内部 alpha 阶段，重点验证：
 - 哪些场景最适合优先产品化。
 
 当前版本可能仍存在平台登录、覆盖不足、抓取波动和样本偏差。试用时请重点反馈：报告是否节省时间、结论是否可信、证据是否能复核、哪些场景会高频使用。
-
