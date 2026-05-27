@@ -1,22 +1,22 @@
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$mediaCrawlerDir = Join-Path $repoRoot "external\MediaCrawler"
-$backendDir = Join-Path $repoRoot "scancast"
-$frontendDir = Join-Path $backendDir "frontend"
+$crawlerDir = Join-Path $repoRoot "packages\crawler"
+$apiDir = Join-Path $repoRoot "apps\api"
+$webDir = Join-Path $repoRoot "apps\web"
 
-if (-not (Test-Path -LiteralPath (Join-Path $mediaCrawlerDir "main.py"))) {
-  throw "MediaCrawler component is missing. Expected external\MediaCrawler\main.py."
+if (-not (Test-Path -LiteralPath (Join-Path $crawlerDir "main.py"))) {
+  throw "VoxLens crawler package is missing. Expected packages\crawler\main.py."
 }
 
-Push-Location $mediaCrawlerDir
+Push-Location $crawlerDir
 uv sync --frozen
 Pop-Location
 
-Push-Location $backendDir
+Push-Location $apiDir
 uv sync --frozen
 Pop-Location
 
-Push-Location $frontendDir
+Push-Location $webDir
 pnpm install --frozen-lockfile
 Pop-Location

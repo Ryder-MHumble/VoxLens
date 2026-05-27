@@ -3,4 +3,4 @@
   [string]$Query = "安卓旗舰手机 5000 拍照 评测"
 )
 
-uv run social-research search $Need --query $Query --platforms youtube,bilibili,xiaohongshu --limit 5
+uv run voxlens-research search $Need --query $Query --platforms youtube,bilibili,xiaohongshu --limit 5

@@ -1,4 +1,4 @@
-﻿# VoxLens
+# VoxLens
 
 > 面向视频社媒的 DeepResearch alpha：输入一个研究问题，VoxLens 会跨 Bilibili、Douyin、YouTube、小红书、知乎、快手、微博等来源搜索内容，采样评论与字幕，并生成带证据引用和质量评估的研究报告。
 
@@ -68,7 +68,7 @@ VoxLens 帮你更快回答这些问题：
 - **评论与字幕采样**：采集视频标题、基础信息、评论区样本、字幕或文本片段，用于后续证据归因。
 - **LLM evidence-backed synthesis**：通过 OpenRouter 模型生成报告，要求每个重要判断绑定来源 ID；无模型配置时自动降级到确定性报告。
 - **质量评估**：每份报告都会评估覆盖率、引用准确率、证据强度和结论风险，避免把弱证据包装成强结论。
-- **Provider 分层**：OpenCLI / MediaCrawler 保留为 local/dev provider；线上稳定 provider 可通过独立接口替换。
+- **一体化采集运行时**：OpenCLI、VoxLens crawler runtime、yt-dlp 等能力统一在产品运行时内编排；线上稳定 provider 可通过同一接口替换。
 
 ## 与通用 Agent / 研究工具的区别
 
@@ -112,10 +112,24 @@ AI 陪伴
 
 好的 query 通常包含研究对象、平台范围、希望回答的问题、输出重点和业务背景。
 
+## 项目结构
+
+VoxLens 现在按一体化产品 monorepo 组织，所有运行能力都在仓库的产品目录下：
+
+```text
+apps/api/                 # FastAPI research runtime，负责任务队列、采集编排、报告生成
+apps/web/                 # VoxLens Web 产品界面
+packages/crawler/         # VoxLens crawler runtime，承载中文社媒采集能力
+packages/research_cli/    # 本地 research CLI 与脚本化入口
+runtime/runs/             # 本地运行产物、采集缓存和报告事件，不提交到 Git
+docs/runtime/             # 产品运行时、接口和架构文档
+```
+
+`packages/crawler/` 是产品内置运行时组件；它保留上游 license 和版本记录，方便合规审查与后续同步，但不再作为外部工程暴露在主结构中。上游版本记录见 `packages/crawler/UPSTREAM_REVISION`，第三方声明见 `THIRD_PARTY_NOTICES.md`。
+
 ## 内部试用启动
 
-仓库已内置 MediaCrawler 组件，位置为 `external/MediaCrawler`，对应上游版本记录在
-`external/MediaCrawler.UPSTREAM_REVISION`。首次启动前建议先安装所有本地依赖：
+首次启动前建议先安装所有本地依赖：
 
 ```bash
 cd /path/to/VoxLens
@@ -129,20 +143,20 @@ cd C:\path\to\VoxLens
 .\scripts\bootstrap.ps1
 ```
 
-后端：
+后端 API：
 
 ```powershell
-cd "C:\Users\hp\Documents\VoxLens\scancast"
+cd "C:\Users\hp\Documents\VoxLens\apps\api"
 copy .env.example .env
 # 在 .env 中填入 OPENROUTER_API_KEY 等必要配置；不要把密钥提交到仓库。
 uv sync
-uv run uvicorn app.main:app --app-dir backend --reload --port 8765
+uv run uvicorn app.main:app --reload --port 8765
 ```
 
-前端：
+前端 Web：
 
 ```powershell
-cd "C:\Users\hp\Documents\VoxLens\scancast\frontend"
+cd "C:\Users\hp\Documents\VoxLens\apps\web"
 pnpm install
 pnpm dev
 ```

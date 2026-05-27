@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "social-deepresearch-mvp"
+name = "voxlens-research-cli"
 version = "0.1.0"
-description = "MVP for cross-platform social video research with OpenCLI, MediaCrawler, and ffmpeg hooks."
+description = "VoxLens research CLI for integrated social-video collection and report generation."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -13,10 +13,10 @@ dependencies = [
 ]
 
 [project.scripts]
-social-research = "social_deep_research.cli:main"
+voxlens-research = "voxlens_research.cli:main"
 
 [tool.uv]
 package = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["social_deep_research"]
+packages = ["packages/research_cli/voxlens_research"]

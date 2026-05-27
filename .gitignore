@@ -7,10 +7,10 @@ __pycache__/
 *.pyc
 runs/
 reports/*.json
-scancast/frontend/node_modules/
-scancast/frontend/dist/
-scancast/frontend/.tanstack/
-scancast/frontend/.wrangler/
-scancast/.venv/
-scancast/backend/runs/
-scancast/runs/
+runtime/runs/
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.tanstack/
+apps/web/.wrangler/
+apps/api/.venv/
+packages/crawler/.venv/

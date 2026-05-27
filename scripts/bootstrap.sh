@@ -2,18 +2,20 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-media_crawler_dir="$repo_root/external/MediaCrawler"
+crawler_dir="$repo_root/packages/crawler"
+api_dir="$repo_root/apps/api"
+web_dir="$repo_root/apps/web"
 
-if [[ ! -f "$media_crawler_dir/main.py" ]]; then
-  echo "MediaCrawler component is missing. Expected external/MediaCrawler/main.py." >&2
+if [[ ! -f "$crawler_dir/main.py" ]]; then
+  echo "VoxLens crawler package is missing. Expected packages/crawler/main.py." >&2
   exit 1
 fi
 
-cd "$media_crawler_dir"
+cd "$crawler_dir"
 uv sync --frozen
 
-cd "$repo_root/scancast"
+cd "$api_dir"
 uv sync --frozen
 
-cd "$repo_root/scancast/frontend"
+cd "$web_dir"
 pnpm install --frozen-lockfile
