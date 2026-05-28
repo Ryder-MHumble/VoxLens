@@ -21,6 +21,7 @@
 import asyncio
 import json
 import logging
+import os
 from collections import Counter
 
 import aiofiles
@@ -44,6 +45,9 @@ class AsyncWordCloudGenerator:
             jieba.add_word(word)
 
     def load_stop_words(self):
+        if not os.path.exists(self.stop_words_file):
+            utils.logger.info("Stop words file %s is missing; word cloud generation will continue without it.", self.stop_words_file)
+            return set()
         with open(self.stop_words_file, 'r', encoding='utf-8') as f:
             return set(f.read().strip().split('\n'))
 
@@ -66,27 +70,31 @@ class AsyncWordCloudGenerator:
 
     async def generate_word_cloud(self, word_freq, save_words_prefix):
         await plot_lock.acquire()
-        top_20_word_freq = {word: freq for word, freq in
-                            sorted(word_freq.items(), key=lambda item: item[1], reverse=True)[:20]}
-        wordcloud = WordCloud(
-            font_path=config.FONT_PATH,
-            width=800,
-            height=400,
-            background_color='white',
-            max_words=200,
-            stopwords=self.stop_words,
-            colormap='viridis',
-            contour_color='steelblue',
-            contour_width=1
-        ).generate_from_frequencies(top_20_word_freq)
+        try:
+            top_20_word_freq = {word: freq for word, freq in
+                                sorted(word_freq.items(), key=lambda item: item[1], reverse=True)[:20]}
+            font_path = config.FONT_PATH if os.path.exists(config.FONT_PATH) else None
+            if not font_path:
+                utils.logger.warning("Font file %s is missing; word cloud generation will use the default font.", config.FONT_PATH)
+            wordcloud = WordCloud(
+                font_path=font_path,
+                width=800,
+                height=400,
+                background_color='white',
+                max_words=200,
+                stopwords=self.stop_words,
+                colormap='viridis',
+                contour_color='steelblue',
+                contour_width=1
+            ).generate_from_frequencies(top_20_word_freq)
 
-        # Save word cloud image
-        plt.figure(figsize=(10, 5), facecolor='white')
-        plt.imshow(wordcloud, interpolation='bilinear')
+            # Save word cloud image
+            plt.figure(figsize=(10, 5), facecolor='white')
+            plt.imshow(wordcloud, interpolation='bilinear')
 
-        plt.axis('off')
-        plt.tight_layout(pad=0)
-        plt.savefig(f"{save_words_prefix}_word_cloud.png", format='png', dpi=300)
-        plt.close()
-
-        plot_lock.release()
+            plt.axis('off')
+            plt.tight_layout(pad=0)
+            plt.savefig(f"{save_words_prefix}_word_cloud.png", format='png', dpi=300)
+            plt.close()
+        finally:
+            plot_lock.release()

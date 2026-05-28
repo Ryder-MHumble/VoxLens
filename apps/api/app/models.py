@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.platform_catalog import DEFAULT_PLATFORM_IDS
+
 
 PlatformId = Literal["bilibili", "douyin", "youtube", "xiaohongshu", "zhihu", "kuaishou", "weibo"]
 Lang = Literal["zh", "en"]
@@ -18,7 +20,7 @@ ProviderMode = Literal["local", "online", "hybrid"]
 class ResearchRequest(BaseModel):
     need: str = Field(..., min_length=1)
     query: str | None = None
-    platforms: list[PlatformId] = Field(default_factory=lambda: ["bilibili", "douyin", "youtube", "xiaohongshu", "zhihu", "kuaishou", "weibo"])
+    platforms: list[PlatformId] = Field(default_factory=lambda: list(DEFAULT_PLATFORM_IDS))
     limitPerPlatform: int = Field(default=12, ge=1, le=50)
     commentsPerVideo: int = Field(default=12, ge=0, le=50)
     detailVideosPerPlatform: int = Field(default=3, ge=0, le=8)

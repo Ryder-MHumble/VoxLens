@@ -40,7 +40,7 @@ File: `apps/api/app/agents/planner.py`
 - Expands search phrases for Chinese and English sources.
 - Builds crawl targets with platform, provider, query, limit, detail depth and concurrency.
 - Defaults to Bilibili, Douyin, YouTube, Xiaohongshu, Zhihu, Kuaishou and Weibo.
-- Excludes Baidu/Tieba from the alpha default set.
+- Baidu/Tieba is removed from the crawler runtime because it is outside the current social-video alpha scope.
 
 ### Provider Registry
 
@@ -92,6 +92,8 @@ Each report includes:
 - Overall quality score and warnings.
 
 ## Provider Matrix
+
+The backend source of truth for platform metadata, crawler platform codes and cookie aliases is `apps/api/app/platform_catalog.py`. Keep docs, `/api/capabilities`, provider routing and report platform summaries aligned with that catalog.
 
 | Platform | Local/dev provider | Online replacement | Evidence today |
 | --- | --- | --- | --- |

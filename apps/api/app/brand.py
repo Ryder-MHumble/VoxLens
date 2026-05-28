@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.platform_catalog import platform_brand_payload
+
 
 PRODUCT_NAME = "VoxLens"
 
@@ -45,43 +47,7 @@ BRAND: dict[str, Any] = {
             "favicon": "/favicon.svg",
         },
     },
-    "platforms": {
-        "bilibili": {
-            "name": "Bilibili",
-            "logo": "https://www.bilibili.com/favicon.ico",
-            "role": "Long-form testing, creator methodology, detailed comments.",
-        },
-        "douyin": {
-            "name": "Douyin",
-            "logo": "https://www.douyin.com/favicon.ico",
-            "role": "Short-form sentiment, fresh reactions, high-volume comment signals.",
-        },
-        "youtube": {
-            "name": "YouTube",
-            "logo": "https://www.youtube.com/favicon.ico",
-            "role": "Global reviews, comparison videos, long-term experience.",
-        },
-        "xiaohongshu": {
-            "name": "Xiaohongshu",
-            "logo": "https://www.xiaohongshu.com/favicon.ico",
-            "role": "Lifestyle notes, product experience, image/video posts and comment sentiment.",
-        },
-        "zhihu": {
-            "name": "Zhihu",
-            "logo": "https://static.zhihu.com/heifetz/favicon.ico",
-            "role": "Long-form answers, zvideo, expert discussions and threaded comments.",
-        },
-        "kuaishou": {
-            "name": "Kuaishou",
-            "logo": "https://www.kuaishou.com/favicon.ico",
-            "role": "Short-video product experience, regional sentiment and creator feedback.",
-        },
-        "weibo": {
-            "name": "Weibo",
-            "logo": "https://weibo.com/favicon.ico",
-            "role": "Public conversation, trend diffusion, brand incidents and comment signals.",
-        },
-    },
+    "platforms": platform_brand_payload(),
 }
 
 

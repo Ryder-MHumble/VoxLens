@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { toPng } from "html-to-image";
 import {
+  ChevronDown,
+  ChevronUp,
   Download,
   ExternalLink,
   Play,
@@ -27,7 +29,7 @@ import {
   type ResearchStreamEvent,
   type Source,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 
 const searchSchema = z.object({
   q: z.preprocess((value) => (value == null ? undefined : String(value)), z.string().optional()),
@@ -66,6 +68,7 @@ function Results() {
   const [streamEvents, setStreamEvents] = useState<ResearchStreamEvent[]>([]);
   const [exportingImage, setExportingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pipelineExpanded, setPipelineExpanded] = useState(true);
 
   const handleStreamEvent = useCallback(
     (event: ResearchStreamEvent) => {
@@ -463,8 +466,6 @@ function Results() {
               </ul>
             </div>
 
-            <ProgressRail stages={report.ui?.stages ?? []} events={streamEvents} progress={progress} />
-
             <div className="px-1 text-xs text-muted-foreground">
               <span className="font-medium text-foreground">{report.totalVideos}</span> {t("videos")} /{" "}
               <span className="font-medium text-foreground">{report.platforms.filter((p) => p.count > 0).length}</span>{" "}
@@ -482,16 +483,17 @@ function Results() {
             className="scroll-col space-y-6 lg:self-start"
           >
             <div className="glass rounded-2xl p-5" style={{ boxShadow: "var(--shadow-glass)" }}>
-              <ProgressPanel report={report} events={streamEvents} streaming={isWorking} progress={progress} />
-
-              <PlatformLogoStrip
-                platforms={report.platforms}
-                activeFilter={activeFilter}
-                onSelect={(platform) => handleSourceFilterChange(platform)}
-                videoLabel={t("videos")}
+              <ProgressPanel
+                report={report}
+                events={streamEvents}
+                streaming={isWorking}
+                progress={progress}
+                lang={lang}
+                expanded={pipelineExpanded}
+                onExpandedChange={setPipelineExpanded}
               />
 
-              <InsightStrip report={report} onCitationHover={handleCitationHover} />
+              <InsightStrip report={report} lang={lang} onCitationHover={handleCitationHover} />
 
               <div className="mt-6 border-t border-white/40 pt-5">
                 <h3 className="text-sm font-semibold">{t("key_takeaways")}</h3>
@@ -549,23 +551,13 @@ function Results() {
                 </span>
               </div>
 
-              <div className="sources-filter-row">
-                {[{ id: "all" as const, name: t("all"), logo: "" }, ...PLATFORMS].map((f) => {
-                const active = activeFilter === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    data-active={active}
-                    type="button"
-                    onClick={() => handleSourceFilterChange(f.id)}
-                    className="source-filter-chip"
-                  >
-                    {f.id !== "all" && <PlatformLogoImage platform={f.id} size={14} />}
-                    <span>{f.name}</span>
-                  </button>
-                );
-                })}
-              </div>
+              <PlatformLogoStrip
+                platforms={report.platforms}
+                activeFilter={activeFilter}
+                onSelect={handleSourceFilterChange}
+                allLabel={t("all")}
+                videoLabel={t("videos")}
+              />
             </div>
 
             <div ref={sourcesListRef} className="sources-list glass rounded-2xl p-3" style={{ boxShadow: "var(--shadow-glass)" }}>
@@ -890,9 +882,11 @@ function CitationList({ ids, onHover }: { ids: Array<number | string>; onHover?:
 
 function InsightStrip({
   report,
+  lang,
   onCitationHover,
 }: {
   report: ResearchReport;
+  lang: Lang;
   onCitationHover?: (sourceId: number | string | null) => void;
 }) {
   const insights = report.insights ?? [];
@@ -910,7 +904,7 @@ function InsightStrip({
             <div key={insight.id} data-carousel-card className="insight-slide-card">
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  {insight.kind || "insight"}
+                  {formatInsightKind(insight.kind, lang)}
                 </span>
                 <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-foreground">
                   {insight.confidence ?? 3}/5
@@ -926,21 +920,21 @@ function InsightStrip({
           ))}
           {coverage && (
             <div data-carousel-card className="coverage-slide-card text-xs">
-              <p className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">Coverage</p>
+              <p className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">{resultCopy(lang, "coverage")}</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <MetricPill label="Sources" value={coverage.totalSources} />
-                <MetricPill label="Comments" value={coverage.totalComments} />
-                <MetricPill label="Platforms" value={coverage.platformCount} />
-                <MetricPill label="Cited" value={coverage.citedSources} />
+                <MetricPill label={resultCopy(lang, "sources")} value={coverage.totalSources} />
+                <MetricPill label={resultCopy(lang, "comments")} value={coverage.totalComments} />
+                <MetricPill label={resultCopy(lang, "platforms")} value={coverage.platformCount} />
+                <MetricPill label={resultCopy(lang, "cited")} value={coverage.citedSources} />
               </div>
               {quality && (
                 <div className="mt-2 rounded-xl bg-white/55 px-2.5 py-2 ring-1 ring-white/60">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-muted-foreground">Quality</span>
+                    <span className="text-[10px] text-muted-foreground">{resultCopy(lang, "quality")}</span>
                     <span className="text-sm font-semibold">{quality.overall}/100</span>
                   </div>
                   <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground">
-                    Evidence {quality.evidenceStrength?.score ?? 0} · Citations {quality.citationAccuracy?.score ?? 0} · Risk {quality.conclusionRisk?.label ?? "n/a"}
+                    {resultCopy(lang, "evidence")} {quality.evidenceStrength?.score ?? 0} · {resultCopy(lang, "citations")} {quality.citationAccuracy?.score ?? 0} · {resultCopy(lang, "risk")} {formatRiskLabel(quality.conclusionRisk?.label, lang)}
                   </p>
                 </div>
               )}
@@ -966,15 +960,17 @@ function PlatformLogoStrip({
   platforms,
   activeFilter,
   onSelect,
+  allLabel,
   videoLabel,
 }: {
   platforms: ResearchReport["platforms"];
   activeFilter: "all" | PlatformId;
-  onSelect: (platform: PlatformId) => void;
+  onSelect: (filter: "all" | PlatformId) => void;
+  allLabel: string;
   videoLabel: string;
 }) {
   return (
-    <div className="mb-5 flex items-center justify-center">
+    <div className="sources-platform-filter">
       <div className="platform-logo-strip">
         {platforms.map((platform) => {
           const hasSources = platform.count > 0;
@@ -984,9 +980,10 @@ function PlatformLogoStrip({
               key={platform.id}
               type="button"
               data-active={active}
-              title={`${platform.name} · ${platform.count} ${videoLabel}`}
-              aria-label={`${platform.name}, ${platform.count} ${videoLabel}`}
-              onClick={() => onSelect(platform.id)}
+              title={`${platform.name} · ${platform.count} ${videoLabel}${active ? ` · ${allLabel}` : ""}`}
+              aria-label={`${platform.name}, ${platform.count} ${videoLabel}${active ? `, ${allLabel}` : ""}`}
+              aria-pressed={active}
+              onClick={() => onSelect(active ? "all" : platform.id)}
               className={`group relative grid h-9 w-9 place-items-center rounded-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white/70 hover:opacity-100 ${
                 hasSources ? "opacity-95" : "opacity-35 grayscale"
               }`}
@@ -1005,55 +1002,80 @@ function ProgressPanel({
   events,
   streaming,
   progress,
+  lang,
+  expanded,
+  onExpandedChange,
 }: {
   report: ResearchReport;
   events: ResearchStreamEvent[];
   streaming: boolean;
   progress: number;
+  lang: Lang;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
 }) {
   const stages = report.ui?.stages ?? [];
   const lastMessage = [...events].reverse().find((event) => event.message)?.message;
   const warnings = report.warnings ?? [];
   const percent = Math.max(progress, report.ui?.progress ?? 0);
   const isComplete = !streaming && report.status !== "running" && percent >= 100;
+  const summary = localizePipelineMessage(
+    lastMessage || report.ui?.interactionHints?.citations || (isComplete ? "DeepResearch report completed." : ""),
+    lang,
+  );
   if (!streaming && !warnings.length && !stages.length) return null;
 
   return (
-    <div className="mb-5 rounded-2xl bg-white/45 p-4 ring-1 ring-white/50">
+    <div className="progress-panel mb-5 rounded-2xl bg-white/45 p-4 ring-1 ring-white/50" data-expanded={expanded}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            DeepResearch pipeline
+            {resultCopy(lang, "deepResearchPipeline")}
           </p>
           <p className="mt-1 text-sm text-foreground/80">
-            {lastMessage || report.ui?.interactionHints?.citations || "Waiting for backend events..."}
+            {summary || resultCopy(lang, "waitingForBackend")}
           </p>
         </div>
-        <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-foreground ring-1 ring-black/5">
-          {percent}%
-        </span>
-      </div>
-      {!isComplete && (
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/60">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${percent}%`, background: "linear-gradient(90deg, var(--violet), var(--indigo))" }}
-          />
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-foreground ring-1 ring-black/5">
+            {percent}%
+          </span>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => onExpandedChange(!expanded)}
+            className="pipeline-toggle"
+          >
+            <span>{expanded ? resultCopy(lang, "collapse") : resultCopy(lang, "expand")}</span>
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
         </div>
+      </div>
+      {expanded && (
+        <>
+          {!isComplete && (
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/60">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${percent}%`, background: "linear-gradient(90deg, var(--violet), var(--indigo))" }}
+              />
+            </div>
+          )}
+          {stages.length > 0 && !isComplete && <StageGrid stages={stages} lang={lang} />}
+          <ProviderActivityList events={events} warnings={warnings} platforms={report.platforms} lang={lang} />
+        </>
       )}
-      {stages.length > 0 && !isComplete && <StageGrid stages={stages} />}
-      <ProviderActivityList events={events} warnings={warnings} platforms={report.platforms} />
     </div>
   );
 }
 
-function StageGrid({ stages }: { stages: ResearchStage[] }) {
+function StageGrid({ stages, lang }: { stages: ResearchStage[]; lang: Lang }) {
   return (
     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
       {stages.map((stage) => (
         <div key={stage.id} className="rounded-xl bg-white/50 px-3 py-2 text-xs ring-1 ring-white/60">
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate font-medium">{stage.label}</span>
+            <span className="truncate font-medium">{formatStageLabel(stage, lang)}</span>
             <span className={`h-2 w-2 shrink-0 rounded-full ${statusClass(stage.status)}`} />
           </div>
           <div className="mt-1 text-[10px] text-muted-foreground">{stage.progress}%</div>
@@ -1108,10 +1130,12 @@ function ProviderActivityList({
   events,
   warnings,
   platforms,
+  lang,
 }: {
   events: ResearchStreamEvent[];
   warnings: string[];
   platforms: ResearchReport["platforms"];
+  lang: Lang;
 }) {
   const activities = providerActivities(events);
   const latestEvent = [...events].reverse().find((event) => event.message);
@@ -1122,10 +1146,10 @@ function ProviderActivityList({
   return (
     <div className="mt-3 rounded-2xl bg-white/35 px-3 py-2.5 ring-1 ring-white/55">
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Backend</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{resultCopy(lang, "backend")}</span>
         {latestEvent && (
           <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground/70">{latestEvent.type}</span> · {latestEvent.message}
+            <span className="font-semibold text-foreground/70">{formatEventType(latestEvent.type, lang)}</span> · {localizePipelineMessage(latestEvent.message, lang)}
           </span>
         )}
         {failedPlatforms.map((item) => (
@@ -1196,30 +1220,162 @@ function platformName(platform: string) {
   return PLATFORMS.find((p) => p.id === platform)?.name || platform;
 }
 
-function ProgressRail({ stages, events, progress }: { stages: ResearchStage[]; events: ResearchStreamEvent[]; progress: number }) {
-  if (!stages.length && !events.length) return null;
-  return (
-    <div className="glass rounded-2xl p-4 text-xs" style={{ boxShadow: "var(--shadow-glass)" }}>
-      <div className="flex items-center justify-between">
-        <p className="font-semibold uppercase tracking-[0.16em] text-muted-foreground">Pipeline</p>
-        <span className="font-medium text-foreground">{progress}%</span>
-      </div>
-      <div className="mt-3 space-y-2">
-        {stages.map((stage) => (
-          <div key={stage.id} className="flex items-center gap-2">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${statusClass(stage.status)}`} />
-            <span className="min-w-0 flex-1 truncate text-muted-foreground">{stage.label}</span>
-            <span className="text-[10px] text-muted-foreground/70">{stage.progress}%</span>
-          </div>
-        ))}
-      </div>
-      {events.length > 0 && (
-        <div className="mt-3 border-t border-white/45 pt-3">
-          <p className="line-clamp-2 text-muted-foreground">{[...events].reverse().find((event) => event.message)?.message}</p>
-        </div>
-      )}
-    </div>
-  );
+const RESULT_COPY = {
+  en: {
+    deepResearchPipeline: "DeepResearch pipeline",
+    collapse: "Collapse",
+    expand: "Expand",
+    waitingForBackend: "Waiting for backend events...",
+    backend: "Backend",
+    coverage: "Coverage",
+    sources: "Sources",
+    comments: "Comments",
+    platforms: "Platforms",
+    cited: "Cited",
+    quality: "Quality",
+    evidence: "Evidence",
+    citations: "Citations",
+    risk: "Risk",
+    insight: "Insight",
+    opportunity: "Opportunity",
+    finding: "Finding",
+    trend: "Trend",
+    recommendation: "Recommendation",
+    disagreement: "Disagreement",
+    notAvailable: "n/a",
+  },
+  zh: {
+    deepResearchPipeline: "DeepResearch 流程",
+    collapse: "收起",
+    expand: "展开",
+    waitingForBackend: "等待后端事件...",
+    backend: "后端",
+    coverage: "覆盖度",
+    sources: "来源",
+    comments: "评论",
+    platforms: "平台",
+    cited: "被引用",
+    quality: "质量",
+    evidence: "证据",
+    citations: "引用",
+    risk: "风险",
+    insight: "洞察",
+    opportunity: "机会",
+    finding: "发现",
+    trend: "趋势",
+    recommendation: "建议",
+    disagreement: "分歧",
+    notAvailable: "暂无",
+  },
+} as const;
+
+type ResultCopyKey = keyof typeof RESULT_COPY.en;
+
+function resultCopy(lang: Lang, key: ResultCopyKey) {
+  return RESULT_COPY[lang][key];
+}
+
+function formatStageLabel(stage: ResearchStage, lang: Lang) {
+  const labels: Record<string, Record<Lang, string>> = {
+    plan: { en: "Plan query", zh: "规划问题" },
+    search: { en: "Search sources", zh: "搜索来源" },
+    evidence: { en: "Structure evidence", zh: "整理证据" },
+    synthesis: { en: "Synthesize report", zh: "生成报告" },
+  };
+  return labels[stage.id]?.[lang] || stage.label;
+}
+
+function formatInsightKind(kind: string | undefined, lang: Lang) {
+  const normalized = (kind || "").trim().toLowerCase();
+  const keys: Record<string, ResultCopyKey> = {
+    insight: "insight",
+    risk: "risk",
+    opportunity: "opportunity",
+    finding: "finding",
+    findings: "finding",
+    trend: "trend",
+    recommendation: "recommendation",
+    recommendations: "recommendation",
+    disagreement: "disagreement",
+    disagreements: "disagreement",
+    coverage: "coverage",
+  };
+  const key = keys[normalized] || "insight";
+  return resultCopy(lang, key);
+}
+
+function formatRiskLabel(label: string | undefined, lang: Lang) {
+  if (!label) return resultCopy(lang, "notAvailable");
+  if (lang === "en") return label;
+  const normalized = label.toLowerCase();
+  if (normalized.includes("low")) return "低";
+  if (normalized.includes("medium") || normalized.includes("moderate")) return "中";
+  if (normalized.includes("high")) return "高";
+  return label;
+}
+
+function formatEventType(type: string, lang: Lang) {
+  if (lang === "en") return type;
+  const labels: Record<string, string> = {
+    run_started: "任务启动",
+    stage: "阶段更新",
+    provider_started: "平台检索",
+    sources: "来源更新",
+    evidence: "证据更新",
+    agent_step: "代理步骤",
+    outline: "大纲生成",
+    report_patch: "报告更新",
+    section_started: "开始章节",
+    section_delta: "章节流式生成",
+    section_complete: "完成章节",
+    final_report: "最终报告",
+    error: "错误",
+  };
+  return labels[type] || type;
+}
+
+function localizePipelineMessage(message: string | undefined, lang: Lang) {
+  const text = (message || "").trim();
+  if (!text) return "";
+  if (lang === "en" || /[\u4e00-\u9fff]/u.test(text)) return text;
+
+  const exact: Record<string, string> = {
+    "DeepResearch run started.": "DeepResearch 任务已启动。",
+    "DeepResearch report completed.": "DeepResearch 报告已完成。",
+    completed: "已完成。",
+    "Outline and takeaways are ready.": "大纲和核心结论已生成。",
+    "Report shell is ready; streaming sections next.": "报告框架已生成，正在流式输出正文。",
+    "Generated report outline, takeaways, source metadata and streamable sections.": "已生成报告大纲、核心结论、来源元数据和可流式输出的章节。",
+    "Generated report sections, takeaways, comparison table and source citations.": "已生成报告章节、核心结论、对比表和来源引用。",
+    "Live providers disabled; returned a query-specific planning report without factual claims.": "实时来源已关闭，已返回不含事实断言的查询规划报告。",
+  };
+  if (exact[text]) return exact[text];
+
+  const collected = text.match(/^Collected (\d+) sources\.$/);
+  if (collected) return `已收集 ${collected[1]} 个来源。`;
+
+  const planned = text.match(/^Planned (\d+) crawl targets for (\d+) platforms\.$/);
+  if (planned) return `已为 ${planned[2]} 个平台规划 ${planned[1]} 个抓取目标。`;
+
+  const prepared = text.match(/^Prepared (\d+) sources for report synthesis\.$/);
+  if (prepared) return `已为报告生成准备 ${prepared[1]} 个来源。`;
+
+  const searching = text.match(/^Searching (.+?) with (.+)$/);
+  if (searching) return `正在使用 ${searching[2]} 搜索 ${platformName(searching[1])}。`;
+
+  const returned = text.match(/^(.+?) returned (\d+) new sources for (.+)$/);
+  if (returned) return `${returned[1]} 为 ${platformName(returned[3])} 返回 ${returned[2]} 个新来源。`;
+
+  const onlySources = text.match(/^Only (\d+) live sources collected; requested at least (\d+)\./);
+  if (onlySources) return `仅收集到 ${onlySources[1]} 个实时来源，低于至少 ${onlySources[2]} 个来源的目标。`;
+
+  const streaming = text.match(/^Streaming section (\d+)\/(\d+)$/);
+  if (streaming) return `正在生成第 ${streaming[1]}/${streaming[2]} 个章节。`;
+
+  const completedSection = text.match(/^Completed section (\d+)\/(\d+)$/);
+  if (completedSection) return `已完成第 ${completedSection[1]}/${completedSection[2]} 个章节。`;
+
+  return text;
 }
 
 function statusClass(status?: ResearchStage["status"]) {

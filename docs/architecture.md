@@ -17,13 +17,14 @@ docs/runtime/             Runtime and integration documentation
 
 - Product contributors should see one VoxLens system, not a legacy app shell plus an outside dependency folder.
 - Runtime code needs stable product-level paths for crawler output, run persistence, and capability detection.
-- The crawler package must remain easy to update from upstream while still feeling like a first-class VoxLens runtime component.
-- Legal attribution must stay explicit even though the component is structurally integrated.
+- Platform/provider metadata should have one backend source of truth (`apps/api/app/platform_catalog.py`) instead of repeated lists across reports, capabilities and crawler adapters.
+- The crawler package should feel like a first-class VoxLens runtime component instead of a visible outside project.
+- Legal attribution and risk notices must stay explicit even though standalone upstream docs are removed.
 
 ## Trade-offs
 
 - Keeping the crawler source in `packages/crawler/` makes the repository larger, but avoids a fragile clone/bootstrap step.
-- Preserving upstream README and license files inside the package keeps compliance clear, but some internal package files still mention the upstream project name.
+- Removing standalone crawler docs, WebUI assets and unrelated platform paths reduces external-project leakage, but copyright headers and license notices remain for compliance.
 - Runtime outputs are centralized in `runtime/runs/`, which simplifies cleanup and deployment but requires path updates in scripts and docs.
 
 ## Operational Rules
@@ -32,4 +33,5 @@ docs/runtime/             Runtime and integration documentation
 - Write persisted run records to `runtime/runs/research/`.
 - Write crawler collection output to `runtime/runs/crawler/`.
 - Install everything from the repository root with `scripts/bootstrap.sh` or `scripts/bootstrap.ps1`.
-- Track crawler upstream changes in `packages/crawler/UPSTREAM_REVISION` and `THIRD_PARTY_NOTICES.md`.
+- Run `scripts/validate_runtime.sh` or `scripts/validate_runtime.ps1` before merging runtime changes.
+- Keep crawler-related risk warnings in the README, root `LICENSE`, `THIRD_PARTY_NOTICES.md` and `packages/crawler/LICENSE`.

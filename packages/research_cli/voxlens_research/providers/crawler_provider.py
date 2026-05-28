@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +16,6 @@ CRAWLER_PLATFORM = {
     "douyin": "dy",
     "kuaishou": "ks",
     "weibo": "wb",
-    "tieba": "tieba",
     "zhihu": "zhihu",
 }
 
@@ -25,8 +25,22 @@ OUTPUT_DIR_NAME = {
     "dy": "douyin",
     "ks": "kuaishou",
     "wb": "weibo",
-    "tieba": "tieba",
     "zhihu": "zhihu",
+}
+
+COOKIE_ENV_ALIASES = {
+    "bilibili": ("VOXLENS_BILIBILI_COOKIE", "BILIBILI_COOKIE"),
+    "douyin": ("VOXLENS_DOUYIN_COOKIE", "DOUYIN_COOKIE", "DY_COOKIE"),
+    "xiaohongshu": (
+        "VOXLENS_XHS_COOKIE",
+        "VOXLENS_XIAOHONGSHU_COOKIE",
+        "XHS_COOKIE",
+        "XIAOHONGSHU_COOKIE",
+        "REDNOTE_COOKIE",
+    ),
+    "zhihu": ("VOXLENS_ZHIHU_COOKIE", "ZHIHU_COOKIE"),
+    "kuaishou": ("VOXLENS_KUAISHOU_COOKIE", "KUAISHOU_COOKIE", "KS_COOKIE"),
+    "weibo": ("VOXLENS_WEIBO_COOKIE", "WEIBO_COOKIE", "WB_COOKIE"),
 }
 
 
@@ -54,6 +68,8 @@ def search(
         return run
 
     before = _content_files(save_root, platform_code)
+    cookie = _cookie_for_platform(platform)
+    login_type = "cookie" if cookie else "qrcode"
     command = [
         "uv",
         "run",
@@ -61,7 +77,7 @@ def search(
         "--platform",
         platform_code,
         "--lt",
-        "qrcode",
+        login_type,
         "--type",
         "search",
         "--keywords",
@@ -79,7 +95,9 @@ def search(
         "--headless",
         "false",
     ]
-    run.command = command
+    if cookie:
+        command.extend(["--cookies", cookie])
+    run.command = _redact_cookie(command)
     try:
         code, stdout, stderr, elapsed = run_command(command, cwd=crawler_dir, timeout=timeout)
         run.elapsed_sec = elapsed
@@ -106,6 +124,22 @@ def _content_files(save_root: Path, platform_code: str) -> set[Path]:
     if not jsonl_dir.exists():
         return set()
     return set(jsonl_dir.glob("search_contents_*.jsonl"))
+
+
+def _cookie_for_platform(platform: str) -> str:
+    for name in COOKIE_ENV_ALIASES.get(platform, ()):
+        value = os.getenv(name)
+        if value:
+            return value
+    return ""
+
+
+def _redact_cookie(command: list[str]) -> list[str]:
+    redacted = list(command)
+    for idx, part in enumerate(redacted[:-1]):
+        if part == "--cookies":
+            redacted[idx + 1] = "<redacted>"
+    return redacted
 
 
 def _normalize(platform: str, row: dict[str, Any]) -> SearchItem:

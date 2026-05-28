@@ -1,0 +1,8 @@
+# Replace or extend these owners when the project adds maintainers.
+* @Ryder-MHumble
+
+/apps/api/ @Ryder-MHumble
+/apps/web/ @Ryder-MHumble
+/packages/crawler/ @Ryder-MHumble
+/packages/research_cli/ @Ryder-MHumble
+/docs/runtime/ @Ryder-MHumble

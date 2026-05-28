@@ -22,7 +22,6 @@ from __future__ import annotations
 
 
 import sys
-import re
 from enum import Enum
 from types import SimpleNamespace
 from typing import Iterable, Optional, Sequence, Type, TypeVar
@@ -45,7 +44,6 @@ class PlatformEnum(str, Enum):
     KUAISHOU = "ks"
     BILIBILI = "bili"
     WEIBO = "wb"
-    TIEBA = "tieba"
     ZHIHU = "zhihu"
 
 
@@ -136,21 +134,6 @@ def _inject_init_db_default(args: Sequence[str]) -> list[str]:
     return normalized
 
 
-def _normalize_tieba_note_id(value: str) -> str:
-    """Accept a raw Tieba thread id or a /p/<id> URL."""
-    value = value.strip()
-    match = re.search(r"/p/(\d+)", value)
-    return match.group(1) if match else value
-
-
-def _normalize_tieba_creator_url(value: str) -> str:
-    """Accept a Tieba creator homepage URL or a portrait id."""
-    value = value.strip()
-    if value.startswith("http://") or value.startswith("https://"):
-        return value
-    return f"https://tieba.baidu.com/home/main?id={value}"
-
-
 async def parse_cmd(argv: Optional[Sequence[str]] = None):
     """Parse command line arguments using Typer."""
 
@@ -162,7 +145,7 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
             PlatformEnum,
             typer.Option(
                 "--platform",
-                help="Media platform selection (xhs=XiaoHongShu | dy=Douyin | ks=Kuaishou | bili=Bilibili | wb=Weibo | tieba=Baidu Tieba | zhihu=Zhihu)",
+                help="Media platform selection (xhs=XiaoHongShu | dy=Douyin | ks=Kuaishou | bili=Bilibili | wb=Weibo | zhihu=Zhihu)",
                 rich_help_panel="Basic Configuration",
             ),
         ] = _coerce_enum(PlatformEnum, config.PLATFORM, PlatformEnum.XHS),
@@ -317,7 +300,7 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
             ),
         ] = config.IP_PROXY_PROVIDER_NAME,
     ) -> SimpleNamespace:
-        """MediaCrawler 命令行入口"""
+        """VoxLens crawler runtime command-line entrypoint."""
 
         enable_comment = _to_bool(get_comment)
         enable_sub_comment = _to_bool(get_sub_comment)
@@ -360,10 +343,6 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
                 config.WEIBO_SPECIFIED_ID_LIST = specified_id_list
             elif platform == PlatformEnum.KUAISHOU:
                 config.KS_SPECIFIED_ID_LIST = specified_id_list
-            elif platform == PlatformEnum.TIEBA:
-                config.TIEBA_SPECIFIED_ID_LIST = [
-                    _normalize_tieba_note_id(item) for item in specified_id_list
-                ]
 
         if creator_id_list:
             if platform == PlatformEnum.XHS:
@@ -376,10 +355,6 @@ async def parse_cmd(argv: Optional[Sequence[str]] = None):
                 config.WEIBO_CREATOR_ID_LIST = creator_id_list
             elif platform == PlatformEnum.KUAISHOU:
                 config.KS_CREATOR_ID_LIST = creator_id_list
-            elif platform == PlatformEnum.TIEBA:
-                config.TIEBA_CREATOR_URL_LIST = [
-                    _normalize_tieba_creator_url(item) for item in creator_id_list
-                ]
 
         return SimpleNamespace(
             platform=config.PLATFORM,

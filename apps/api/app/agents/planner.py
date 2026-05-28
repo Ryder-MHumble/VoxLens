@@ -4,6 +4,7 @@ import re
 import time
 
 from app.models import AgentStep, CrawlTarget, ResearchPlan, ResearchRequest
+from app.platform_catalog import CRAWLER_PLATFORM_IDS
 
 
 def build_research_plan(request: ResearchRequest) -> tuple[ResearchPlan, AgentStep]:
@@ -45,8 +46,9 @@ def build_research_plan(request: ResearchRequest) -> tuple[ResearchPlan, AgentSt
         targets=targets,
         retrievalDepth="deep" if request.limitPerPlatform >= 10 or request.commentsPerVideo >= 10 else "standard",
         notes=[
-            "The alpha searches Bilibili, Douyin, YouTube, Xiaohongshu, Zhihu, Kuaishou and Weibo by default; Baidu/Tieba is intentionally excluded.",
+            "The alpha searches Bilibili, Douyin, YouTube, Xiaohongshu, Zhihu, Kuaishou and Weibo by default; Baidu/Tieba is removed from the current crawler runtime scope.",
             "VoxLens crawler runtime is primary for Chinese social platforms and uses cookie env vars or existing-browser/CDP login state.",
+            "Crawler-style access can trigger platform rate limits, verification, account restrictions or bans when misused.",
             "OpenCLI is kept as a local development fallback for YouTube and Bilibili metadata enrichment.",
             "providerMode separates local/dev providers from production online provider adapters.",
             "The frontend consumes progress events for planning, provider runs, source batches, evidence scoring and report streaming.",
@@ -64,7 +66,7 @@ def build_research_plan(request: ResearchRequest) -> tuple[ResearchPlan, AgentSt
 
 
 def _primary_provider(platform: str, use_crawler_runtime: bool) -> str:
-    if use_crawler_runtime and platform in {"bilibili", "douyin", "xiaohongshu", "zhihu", "kuaishou", "weibo"}:
+    if use_crawler_runtime and platform in CRAWLER_PLATFORM_IDS:
         return "crawler"
     return "opencli"
 

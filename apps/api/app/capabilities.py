@@ -4,6 +4,7 @@ import os
 import shutil
 from typing import Any
 
+from app.platform_catalog import COOKIE_ENV_ALIASES, capability_platforms, public_platform_catalog
 from app.providers.registry import provider_capabilities
 from app.utils import CRAWLER_ROOT
 
@@ -30,7 +31,8 @@ def capabilities_payload() -> dict[str, Any]:
         "crawlerRuntime": {
             "available": (CRAWLER_ROOT / "main.py").exists(),
             "path": str(CRAWLER_ROOT),
-            "licenseNote": "VoxLens ships this crawler runtime as an integrated package; keep the upstream MediaCrawler license and third-party notice in production reviews.",
+            "licenseNote": "VoxLens ships this crawler runtime as an integrated package; keep package license and third-party notices in production reviews.",
+            "riskNote": "Crawler-style access can trigger rate limits, verification, IP blocking, account restrictions or account bans when misused.",
         },
         "providers": provider_capabilities(),
         "llm": {
@@ -43,60 +45,14 @@ def capabilities_payload() -> dict[str, Any]:
             "strategy": "auto",
             "opencli": "Reuses the user's logged-in Chrome session through OpenCLI Browser Bridge when configured.",
             "crawler": "Prefers explicit cookie env vars, otherwise uses the crawler runtime's existing-browser/CDP login state or QR fallback.",
-            "cookieEnvVars": {
-                "bilibili": ["VOXLENS_BILIBILI_COOKIE", "BILIBILI_COOKIE"],
-                "douyin": ["VOXLENS_DOUYIN_COOKIE", "DOUYIN_COOKIE", "DY_COOKIE"],
-                "xiaohongshu": ["VOXLENS_XHS_COOKIE", "VOXLENS_XIAOHONGSHU_COOKIE", "XHS_COOKIE", "XIAOHONGSHU_COOKIE", "REDNOTE_COOKIE"],
-                "zhihu": ["VOXLENS_ZHIHU_COOKIE", "ZHIHU_COOKIE"],
-                "kuaishou": ["VOXLENS_KUAISHOU_COOKIE", "KUAISHOU_COOKIE", "KS_COOKIE"],
-                "weibo": ["VOXLENS_WEIBO_COOKIE", "WEIBO_COOKIE", "WB_COOKIE"],
-            },
+            "cookieEnvVars": {platform: list(aliases) for platform, aliases in COOKIE_ENV_ALIASES.items()},
             "configured": {
-                "bilibili": bool(os.getenv("VOXLENS_BILIBILI_COOKIE") or os.getenv("BILIBILI_COOKIE")),
-                "douyin": bool(os.getenv("VOXLENS_DOUYIN_COOKIE") or os.getenv("DOUYIN_COOKIE") or os.getenv("DY_COOKIE")),
-                "xiaohongshu": bool(os.getenv("VOXLENS_XHS_COOKIE") or os.getenv("VOXLENS_XIAOHONGSHU_COOKIE") or os.getenv("XHS_COOKIE") or os.getenv("XIAOHONGSHU_COOKIE") or os.getenv("REDNOTE_COOKIE")),
-                "zhihu": bool(os.getenv("VOXLENS_ZHIHU_COOKIE") or os.getenv("ZHIHU_COOKIE")),
-                "kuaishou": bool(os.getenv("VOXLENS_KUAISHOU_COOKIE") or os.getenv("KUAISHOU_COOKIE") or os.getenv("KS_COOKIE")),
-                "weibo": bool(os.getenv("VOXLENS_WEIBO_COOKIE") or os.getenv("WEIBO_COOKIE") or os.getenv("WB_COOKIE")),
+                platform: any(os.getenv(name) for name in aliases)
+                for platform, aliases in COOKIE_ENV_ALIASES.items()
             },
             "privacy": "Cookies are only passed to local crawler subprocesses and are never returned by API responses.",
         },
-        "platforms": {
-            "bilibili": {
-                "search": ["crawler", "opencli fallback"],
-                "comments": ["opencli", "crawler"],
-                "transcripts": ["opencli subtitle"],
-            },
-            "douyin": {
-                "search": ["crawler"],
-                "comments": ["crawler"],
-                "transcripts": [],
-            },
-            "youtube": {
-                "search": ["opencli", "yt-dlp fallback"],
-                "comments": ["opencli"],
-                "transcripts": ["opencli transcript", "yt-dlp subtitles fallback planned"],
-            },
-            "xiaohongshu": {
-                "search": ["crawler"],
-                "comments": ["crawler"],
-                "media": ["note images", "note video url"],
-            },
-            "zhihu": {
-                "search": ["crawler"],
-                "comments": ["crawler"],
-                "content": ["answer", "article", "zvideo metadata"],
-            },
-            "kuaishou": {
-                "search": ["crawler"],
-                "comments": ["crawler"],
-                "media": ["short video metadata"],
-            },
-            "weibo": {
-                "search": ["crawler"],
-                "comments": ["crawler"],
-                "content": ["post text", "media metadata"],
-            },
-        },
+        "platformCatalog": public_platform_catalog(),
+        "platforms": capability_platforms(),
         "warnings": [] if ffmpeg["available"] else ["ffmpeg is not installed or not on PATH; video frame/audio extraction is disabled until installed."],
     }

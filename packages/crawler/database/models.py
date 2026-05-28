@@ -326,62 +326,6 @@ class XhsNoteComment(Base):
     parent_comment_id = Column(String(255), comment='父评论ID')
     like_count = Column(Text, comment='点赞数')
 
-class TiebaNote(Base):
-    __tablename__ = 'tieba_note'
-    id = Column(Integer, primary_key=True, comment='主键ID')
-    note_id = Column(String(644), index=True, comment='笔记ID')
-    title = Column(Text, comment='笔记标题')
-    desc = Column(Text, comment='笔记描述')
-    note_url = Column(Text, comment='笔记URL')
-    publish_time = Column(String(255), index=True, comment='发布时间')
-    user_link = Column(Text, default='', comment='用户链接')
-    user_nickname = Column(Text, default='', comment='用户昵称')
-    user_avatar = Column(Text, default='', comment='用户头像')
-    tieba_id = Column(String(255), default='', comment='贴吧ID')
-    tieba_name = Column(Text, comment='贴吧名称')
-    tieba_link = Column(Text, comment='贴吧链接')
-    total_replay_num = Column(Integer, default=0, comment='总回复数')
-    total_replay_page = Column(Integer, default=0, comment='总回复页数')
-    ip_location = Column(Text, default='', comment='IP地址位置')
-    add_ts = Column(BigInteger, comment='添加时间戳')
-    last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
-    source_keyword = Column(Text, default='', comment='来源关键词')
-
-class TiebaComment(Base):
-    __tablename__ = 'tieba_comment'
-    id = Column(Integer, primary_key=True, comment='主键ID')
-    comment_id = Column(String(255), index=True, comment='评论ID')
-    parent_comment_id = Column(String(255), default='', comment='父评论ID')
-    content = Column(Text, comment='评论内容')
-    user_link = Column(Text, default='', comment='用户链接')
-    user_nickname = Column(Text, default='', comment='用户昵称')
-    user_avatar = Column(Text, default='', comment='用户头像')
-    tieba_id = Column(String(255), default='', comment='贴吧ID')
-    tieba_name = Column(Text, comment='贴吧名称')
-    tieba_link = Column(Text, comment='贴吧链接')
-    publish_time = Column(String(255), index=True, comment='发布时间')
-    ip_location = Column(Text, default='', comment='IP地址位置')
-    sub_comment_count = Column(Integer, default=0, comment='子评论数')
-    note_id = Column(String(255), index=True, comment='笔记ID')
-    note_url = Column(Text, comment='笔记URL')
-    add_ts = Column(BigInteger, comment='添加时间戳')
-    last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
-
-class TiebaCreator(Base):
-    __tablename__ = 'tieba_creator'
-    id = Column(Integer, primary_key=True, comment='主键ID')
-    user_id = Column(String(64), comment='用户ID')
-    user_name = Column(Text, comment='用户名')
-    nickname = Column(Text, comment='用户昵称')
-    avatar = Column(Text, comment='用户头像')
-    ip_location = Column(Text, comment='IP地址位置')
-    add_ts = Column(BigInteger, comment='添加时间戳')
-    last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
-    gender = Column(Text, comment='性别')
-    follows = Column(Text, comment='关注数')
-    fans = Column(Text, comment='粉丝数')
-    registration_duration = Column(Text, comment='注册时长')
-
 class ZhihuContent(Base):
     __tablename__ = 'zhihu_content'
     id = Column(Integer, primary_key=True, comment='主键ID')

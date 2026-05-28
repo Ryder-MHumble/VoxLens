@@ -14,8 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNTIME_ROOT = REPO_ROOT / "runtime"
 CRAWLER_ROOT = REPO_ROOT / "packages" / "crawler"
 
-# Backward-compatible alias for provider modules that still use the crawler's
-# upstream name in protocol fields and run logs.
+# Backward-compatible alias for provider modules that expect a crawler root path.
 CRAWLER_DIR = CRAWLER_ROOT
 
 

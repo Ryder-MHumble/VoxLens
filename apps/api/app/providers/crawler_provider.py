@@ -6,18 +6,10 @@ from pathlib import Path
 from typing import Any, Literal
 
 from app.models import AuthMode, Comment, RunLog, Source
+from app.platform_catalog import COOKIE_ENV_ALIASES, CRAWLER_PLATFORM_CONFIG
 from app.utils import CRAWLER_ROOT, RUNTIME_ROOT, first_nonempty, read_jsonl, run_command, slugify, strip_html, text_excerpt
 
 PlatformName = Literal["douyin", "bilibili", "xiaohongshu", "zhihu", "kuaishou", "weibo"]
-
-PLATFORM_TO_CRAWLER = {
-    "douyin": {"arg": "dy", "folder": "douyin"},
-    "bilibili": {"arg": "bili", "folder": "bili"},
-    "xiaohongshu": {"arg": "xhs", "folder": "xhs"},
-    "zhihu": {"arg": "zhihu", "folder": "zhihu"},
-    "kuaishou": {"arg": "ks", "folder": "kuaishou"},
-    "weibo": {"arg": "wb", "folder": "weibo"},
-}
 
 RUNNER_SCRIPT = Path(__file__).with_name("crawler_runner.py")
 
@@ -135,7 +127,7 @@ def _search_with_crawler(
     if not (CRAWLER_ROOT / "main.py").exists():
         return [], RunLog(provider="crawler", platform=platform, ok=False, count=0, note="VoxLens crawler runtime not found")
 
-    config = PLATFORM_TO_CRAWLER[platform]
+    config = CRAWLER_PLATFORM_CONFIG[platform]
     stamp = str(int(time.time()))
     save_root = RUNTIME_ROOT / "runs" / "crawler" / f"{platform}-{slugify(query)}-{stamp}"
     login_type, cookie = _resolve_login(platform, auth_mode)
@@ -191,19 +183,7 @@ def _resolve_login(platform: PlatformName, auth_mode: AuthMode) -> tuple[str, st
 
 
 def _cookie_for_platform(platform: PlatformName) -> str:
-    if platform == "douyin":
-        names = ("VOXLENS_DOUYIN_COOKIE", "DOUYIN_COOKIE", "DY_COOKIE")
-    elif platform == "bilibili":
-        names = ("VOXLENS_BILIBILI_COOKIE", "BILIBILI_COOKIE")
-    elif platform == "xiaohongshu":
-        names = ("VOXLENS_XHS_COOKIE", "VOXLENS_XIAOHONGSHU_COOKIE", "XHS_COOKIE", "XIAOHONGSHU_COOKIE", "REDNOTE_COOKIE")
-    elif platform == "zhihu":
-        names = ("VOXLENS_ZHIHU_COOKIE", "ZHIHU_COOKIE")
-    elif platform == "kuaishou":
-        names = ("VOXLENS_KUAISHOU_COOKIE", "KUAISHOU_COOKIE", "KS_COOKIE")
-    else:
-        names = ("VOXLENS_WEIBO_COOKIE", "WEIBO_COOKIE", "WB_COOKIE")
-    for name in names:
+    for name in COOKIE_ENV_ALIASES.get(platform, ()):
         value = os.getenv(name)
         if value:
             return value

@@ -11,7 +11,6 @@ from voxlens_research.utils import extract_first_json, run_command
 OPENCLI_PLATFORM = {
     "bilibili": "bilibili",
     "youtube": "youtube",
-    "xiaohongshu": "xiaohongshu",
 }
 
 
@@ -70,8 +69,6 @@ def _normalize(platform: str, item: dict[str, Any]) -> SearchItem:
 
     if platform == "bilibili":
         metrics = {"score": item.get("score")}
-    elif platform == "xiaohongshu":
-        metrics = {"likes": item.get("likes")}
 
     return SearchItem(
         platform=platform,

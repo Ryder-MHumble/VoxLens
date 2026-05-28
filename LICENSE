@@ -1,0 +1,69 @@
+VoxLens Internal Alpha Use License and Risk Disclaimer
+
+Copyright (c) 2026 VoxLens contributors.
+
+Permission is granted to use, copy, modify and run this repository for personal learning, research and internal evaluation only, subject to the conditions below.
+
+1. Non-commercial scope
+
+This repository is not licensed for commercial operation, resale, managed crawling services, paid data collection, surveillance products or other production use unless you have separate written permission from the relevant rights holders.
+
+2. Platform compliance
+
+You are responsible for complying with each target platform's terms of service, robots rules, anti-abuse policies and applicable law. VoxLens must not be used for mass crawling, spam, credential harvesting, bypassing access controls, collecting private or sensitive data without a lawful basis, or disrupting platform operations.
+
+3. Account and access risk
+
+Crawler-style access, browser automation, automated login, abnormal cookie reuse, high-frequency requests or attempts to bypass platform controls may trigger rate limits, CAPTCHA or verification challenges, IP blocking, account restrictions, account suspension or account bans. This risk includes, but is not limited to, Xiaohongshu/RedNote (XHS), Douyin, Bilibili, Kuaishou, Weibo, Zhihu and YouTube. Use dedicated test accounts where possible.
+
+4. Data handling
+
+You are responsible for the legality, privacy, retention and deletion of any data collected through VoxLens. Do not collect or redistribute private, sensitive, copyrighted or non-public content unless you have the required rights and lawful basis.
+
+5. No warranty
+
+The software is provided "AS IS", without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, platform availability or continued account access.
+
+6. Limitation of liability
+
+In no event shall the contributors be liable for direct, indirect, incidental, special, exemplary or consequential damages, including account bans, platform enforcement, loss of data, loss of profits, business interruption or legal claims, arising from use or inability to use the software.
+
+7. Third-party components
+
+Third-party code, models, tools and services may be subject to additional licenses and terms. The integrated crawler runtime includes adapted third-party code governed by packages/crawler/LICENSE. Third-party notices are listed in THIRD_PARTY_NOTICES.md. If a third-party license is more restrictive, the more restrictive terms apply to that component.
+
+---
+
+VoxLens 内部 Alpha 使用许可与风险免责声明
+
+版权所有 (c) 2026 VoxLens contributors。
+
+在遵守以下条件的前提下，允许将本仓库用于个人学习、研究和内部评估目的的使用、复制、修改和运行。
+
+1. 非商业范围
+
+除非已经获得相关权利人的单独书面授权，本仓库不得用于商业化运营、转售、托管爬虫服务、付费数据采集、监控产品或其他生产用途。
+
+2. 平台合规
+
+使用者应自行遵守目标平台的服务条款、robots 规则、反滥用策略以及适用法律。VoxLens 不得用于大规模爬取、垃圾信息、凭证收集、绕过访问控制、无合法依据采集私密或敏感数据，或干扰平台正常运行。
+
+3. 账号与访问风险
+
+爬虫式访问、浏览器自动化、自动化登录、异常 Cookie 复用、高频请求或尝试绕过平台风控，可能触发限流、验证码或验证挑战、IP 封禁、账号限制、账号暂停或账号封禁。该风险包括但不限于小红书/RedNote（XHS）、抖音、Bilibili、快手、微博、知乎和 YouTube。建议尽可能使用测试账号。
+
+4. 数据处理
+
+使用者应自行负责通过 VoxLens 采集数据的合法性、隐私保护、留存和删除。除非已经取得必要权利和合法依据，不得采集或重新分发私密、敏感、受版权保护或非公开内容。
+
+5. 无担保
+
+本软件按“现状”提供，不提供任何形式的明示或暗示保证，包括但不限于适销性、特定用途适用性、非侵权、平台可用性或账号持续可访问性的保证。
+
+6. 责任限制
+
+无论在何种情况下，贡献者均不对因使用或无法使用本软件而产生的直接、间接、偶然、特殊、惩戒性或后果性损害负责，包括账号封禁、平台处置、数据丢失、利润损失、业务中断或法律争议。
+
+7. 第三方组件
+
+第三方代码、模型、工具和服务可能受额外许可与条款约束。内置采集运行时包含受 packages/crawler/LICENSE 约束的第三方改编代码。第三方声明见 THIRD_PARTY_NOTICES.md。如第三方许可更严格，则该组件适用更严格条款。

@@ -11,6 +11,9 @@ if [[ ! -f "$crawler_dir/main.py" ]]; then
   exit 1
 fi
 
+cd "$repo_root"
+uv sync --frozen
+
 cd "$crawler_dir"
 uv sync --frozen
 

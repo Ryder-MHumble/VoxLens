@@ -72,7 +72,7 @@ class WanDouHttpProxy(ProxyProvider):
             response = await client.get(
                 url,
                 headers={
-                    "User-Agent": "MediaCrawler https://github.com/NanmiCoder/MediaCrawler",
+                    "User-Agent": "VoxLens crawler runtime",
                 },
             )
             res_dict: Dict = response.json()

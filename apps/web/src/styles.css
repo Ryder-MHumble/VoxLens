@@ -478,16 +478,12 @@
   transition:
     color 0.18s ease,
     background-color 0.18s ease,
-    box-shadow 0.18s ease,
     transform 0.18s ease;
 }
 .citation-chip:hover,
 .citation-chip:focus-visible {
   background: color-mix(in oklab, var(--violet) 12%, white 46%);
   color: color-mix(in oklab, var(--violet) 78%, var(--foreground));
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--violet) 20%, transparent),
-    0 6px 18px -12px color-mix(in oklab, var(--violet) 42%, transparent);
   outline: none;
   transform: translateY(-1px);
 }
@@ -520,16 +516,6 @@
   transition: opacity 0.25s ease;
   z-index: -1;
 }
-.source-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  border: 1px solid color-mix(in oklab, var(--violet) 18%, transparent);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-}
 .source-card[data-highlighted="true"] {
   background:
     linear-gradient(135deg,
@@ -543,12 +529,6 @@
 .source-card[data-highlighted="true"]::before {
   animation: source-highlight-pulse 1.45s ease-in-out infinite;
   opacity: 0.78;
-}
-.source-card[data-highlighted="true"]::after {
-  opacity: 1;
-}
-.source-card[data-highlighted="true"] .source-cover-frame {
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--violet) 24%, transparent);
 }
 .source-title,
 .source-teaser,
@@ -641,6 +621,7 @@
 .platform-logo-strip {
   display: flex;
   align-items: center;
+  max-width: 100%;
   gap: 10px;
   padding: 8px 12px;
   border: 1px solid color-mix(in oklab, white 66%, transparent);
@@ -663,6 +644,60 @@
     0 10px 24px -18px color-mix(in oklab, var(--violet) 58%, transparent);
   opacity: 1;
   transform: translateY(-1px);
+}
+
+.sources-platform-filter {
+  display: flex;
+  margin-top: 10px;
+  padding-inline: 2px;
+}
+.sources-platform-filter .platform-logo-strip {
+  width: 100%;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 9px;
+}
+
+.progress-panel {
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 78%, transparent),
+    0 18px 52px -40px color-mix(in oklab, var(--violet) 40%, transparent);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.progress-panel[data-expanded="false"] {
+  background: color-mix(in oklab, white 48%, transparent);
+}
+.pipeline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  border: 1px solid color-mix(in oklab, white 58%, transparent);
+  border-radius: 9999px;
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, white 76%, transparent),
+      color-mix(in oklab, white 48%, transparent));
+  color: color-mix(in oklab, var(--muted-foreground) 90%, var(--foreground));
+  font-size: 11px;
+  font-weight: 650;
+  padding: 4px 8px 4px 10px;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.pipeline-toggle:hover,
+.pipeline-toggle:focus-visible {
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, white 82%, var(--violet) 6%),
+      color-mix(in oklab, white 74%, var(--indigo) 9%));
+  color: var(--foreground);
+  outline: none;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -20px color-mix(in oklab, var(--violet) 50%, transparent);
 }
 
 .carousel-shell {
@@ -760,18 +795,18 @@
   pointer-events: none;
   height: 42px;
   width: 40px;
-  border: 1px solid color-mix(in oklab, white 42%, transparent);
+  border: 1px solid color-mix(in oklab, white 74%, transparent);
   border-radius: 14px;
   background:
     linear-gradient(135deg,
-      color-mix(in oklab, var(--foreground) 76%, var(--violet) 14%),
-      color-mix(in oklab, var(--indigo) 72%, black 10%));
-  color: white;
+      color-mix(in oklab, white 78%, var(--violet) 8%),
+      color-mix(in oklab, white 68%, var(--indigo) 12%));
+  color: color-mix(in oklab, var(--foreground) 82%, var(--violet));
   font-size: 26px;
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(18px) saturate(160%);
   box-shadow:
-    0 18px 42px -20px color-mix(in oklab, var(--indigo) 62%, transparent),
-    inset 0 1px 0 color-mix(in oklab, white 32%, transparent);
+    0 16px 36px -26px color-mix(in oklab, var(--violet) 42%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 84%, transparent);
 }
 .carousel-controls .carousel-nudge:first-child {
   transform: translateX(-10px);
@@ -791,8 +826,9 @@
 .carousel-nudge:hover {
   background:
     linear-gradient(135deg,
-      color-mix(in oklab, var(--violet) 82%, black 8%),
-      color-mix(in oklab, var(--indigo) 84%, black 6%));
+      color-mix(in oklab, white 84%, var(--violet) 12%),
+      color-mix(in oklab, white 72%, var(--indigo) 18%));
+  color: var(--foreground);
   transform: translateY(-1px);
 }
 .carousel-controls .carousel-nudge:first-child:hover {

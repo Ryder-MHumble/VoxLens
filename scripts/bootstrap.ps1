@@ -9,6 +9,10 @@ if (-not (Test-Path -LiteralPath (Join-Path $crawlerDir "main.py"))) {
   throw "VoxLens crawler package is missing. Expected packages\crawler\main.py."
 }
 
+Push-Location $repoRoot
+uv sync --frozen
+Pop-Location
+
 Push-Location $crawlerDir
 uv sync --frozen
 Pop-Location

@@ -16,13 +16,13 @@ VoxLens is meant to feel like a research lens for the creator web: not a text-on
 
 ## Positioning
 
-VoxLens is a multimodal social-video DeepResearch agent. It searches Bilibili, Douyin, YouTube, Xiaohongshu and Zhihu, samples videos/comments/transcripts, then produces a structured report with original source links and citation IDs.
+VoxLens is a multimodal social-video DeepResearch agent. It searches Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou and Weibo, samples videos/comments/transcripts when available, then produces a structured report with original source links and citation IDs.
 
 ## Brand Principles
 
 - **Multimodal first**: videos, comments, subtitles and metadata are all research material.
 - **Evidence over summary**: every important statement should be traceable to a source.
-- **Cross-platform contrast**: Bilibili, Douyin, YouTube, Xiaohongshu and Zhihu are treated as different evidence environments.
+- **Cross-platform contrast**: each supported platform is treated as a distinct evidence environment with its own creator norms, comments and auth constraints.
 - **Decision-grade output**: show consensus, disagreement, missing evidence and source reliability.
 - **Respectful crawling**: prefer existing browser sessions or user-provided cookies; never return cookies in API responses.
 

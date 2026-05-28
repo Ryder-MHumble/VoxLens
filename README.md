@@ -1,176 +1,204 @@
 # VoxLens
 
-> 面向视频社媒的 DeepResearch alpha：输入一个研究问题，VoxLens 会跨 Bilibili、Douyin、YouTube、小红书、知乎、快手、微博等来源搜索内容，采样评论与字幕，并生成带证据引用和质量评估的研究报告。
+[English](README.md) | [中文](README.zh-CN.md)
 
-## 一句话定位
+> DeepResearch for social video. Give VoxLens a research question and it searches across Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou, Weibo and similar social-video sources, samples comments and transcripts when available, then generates an evidence-backed report with source references and quality checks.
 
-VoxLens 是一个专注于视频社媒研究的 AI 产品，帮助产品、市场、运营、内容和研究团队，把分散在视频、评论、字幕和创作者内容里的信号，转化为可引用、可复盘、可行动的业务洞察。
+## Important Risk Notice
+
+VoxLens uses crawler-style collection and browser automation in local alpha mode. Before using it, read the following carefully:
+
+- Platform terms, robots rules, anti-abuse policies and local laws remain your responsibility.
+- Misuse, high-frequency access, automated login, abnormal cookie use or attempts to bypass platform controls may trigger rate limits, verification challenges, account suspension, account bans, IP blocking or other enforcement. This risk is especially relevant for platforms such as Xiaohongshu/RedNote (XHS), Douyin, Bilibili, Kuaishou, Weibo and Zhihu.
+- VoxLens is intended for low-frequency personal, learning, research and internal evaluation. Do not use it for mass crawling, spam, surveillance, credential harvesting, resale of collected data or activity that disrupts platform operations.
+- Cookies and logged-in browser sessions can expose account privileges. Use dedicated test accounts where possible and avoid collecting private, sensitive or non-public data.
+- The project is provided as-is. You are responsible for any platform warnings, account restrictions, data loss, legal claims or business interruption caused by how you run it.
+
+See [LICENSE](LICENSE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [packages/crawler/LICENSE](packages/crawler/LICENSE) before redistribution, production use or commercial use.
+
+## Positioning
+
+VoxLens is an AI research product for social-video intelligence. It helps product, marketing, operations, content and research teams turn scattered signals from videos, comments, subtitles and creator posts into business insights that can be cited, reviewed and reused.
+
+The goal is not to crawl more data for its own sake. The goal is to convert social-video evidence into structured reports with traceable sources and explicit uncertainty.
 
 ## Demo
 
-| 首页提问 | 异步生成中 | 证据型报告 |
-|---|---|---|
+| Ask a question | Async generation | Evidence-backed report |
+| --- | --- | --- |
 | ![VoxLens Homepage](public/Homepage.png) | ![VoxLens Generating Report](public/Generating%20Report.png) | ![VoxLens Report](public/Report.png) |
 
-## 为什么需要 VoxLens
+## Why VoxLens
 
-真实的用户反馈、消费情绪、产品讨论和文化趋势，越来越多地发生在视频平台和评论区里。但这些内容通常很难被传统搜索和通用 Agent 高效利用：
+Real user feedback, purchase sentiment, product discussion and cultural trends increasingly happen inside video platforms and comment sections. These materials are hard for traditional search and generic agents to use well because:
 
-- 信息分散在不同平台、不同视频和评论区中。
-- 视频内容需要看完、听完、转写后才适合分析。
-- 评论区信息量大，但噪声高、立场复杂。
-- 研究结论经常缺少可回溯的证据来源。
-- 市场、产品和运营团队很难把这些材料快速复用到汇报和决策里。
+- signals are fragmented across platforms, videos and comment threads;
+- video content often needs titles, descriptions, subtitles, frames or comments before it can be analyzed;
+- comment sections are noisy but contain first-hand user language;
+- research conclusions often lack traceable evidence;
+- business teams need reusable findings, not raw scraped files.
 
-VoxLens 的目标不是“多抓数据”，而是把藏在视频社媒里的信号变成结构化、可引用、可评估的研究报告。
+## Core Value
 
-## 核心价值
+VoxLens helps answer questions such as:
 
-VoxLens 帮你更快回答这些问题：
+- How do users discuss a brand, product, feature or trend in social video?
+- What feedback appears across different video platforms?
+- Which pain points, buying motives and use cases appear repeatedly in comments and subtitles?
+- Is a market trend creator-led, or has it already reached comment-section consensus?
+- What are the reputation risks, objections and opportunity gaps around competitors?
 
-- 用户到底在怎么讨论一个品牌、产品、功能或趋势？
-- 一个热点话题在不同视频平台上的真实反馈是什么？
-- 创作者、字幕、评论和社媒讨论里有哪些高频观点？
-- 某类产品的痛点、卖点和使用场景是什么？
-- 市场趋势是少数内容带动，还是评论区已经形成共识？
-- 竞品在视频社媒中的口碑、争议和机会点在哪里？
+## Use Cases
 
-## 典型使用场景
+### Market Trend Research
 
-### 市场趋势研究
+Input a trend, category or keyword and quickly summarize platform coverage, representative opinions, sentiment and opportunities.
 
-输入趋势、品类或关键词，快速了解它在视频社媒中的讨论热度、代表性观点、用户情绪和潜在机会。
+Best for early trend validation, campaign research, social listening and content planning.
 
-适合：新消费趋势判断、社媒热点复盘、campaign 前期研究、内容选题研究。
+### User Needs and Pain Points
 
-### 用户需求与痛点挖掘
+Extract authentic user language from comments and transcripts around a product, feature or use case.
 
-围绕产品、功能或使用场景，从评论和字幕中提取真实表达，发现高频需求、抱怨点、购买动机和使用障碍。
+Best for product discovery, growth bottleneck analysis, positioning and early market validation.
 
-适合：产品需求洞察、增长转化阻力分析、用户语言提炼、早期方向验证。
+### Competitor and Brand Reputation
 
-### 竞品与品牌口碑分析
+Research brand names, competitor names or category keywords across social-video sources, then summarize feedback, selling points, controversies and reusable evidence.
 
-围绕品牌名、竞品名或品类词进行视频社媒研究，整理不同平台上的用户反馈、核心卖点、负面争议和传播素材。
+Best for competitor research, brand monitoring, messaging analysis and product positioning.
 
-适合：竞品调研、品牌声量观察、用户口碑复盘、产品定位分析。
+### Content and Creator Research
 
-### 内容与创作者研究
+Understand topic structure, video narratives, creator angles and audience concerns.
 
-理解一个话题下的视频内容结构、评论反馈、创作者叙事方式和观众关注点。
+Best for content strategy, short-video topics, creator partnership screening and account retrospectives.
 
-适合：内容策略、短视频选题、创作者合作筛选、账号复盘。
+## Alpha Capabilities
 
-## Alpha 产品能力
+- **Async research runs**: create a run, stream progress, persist results and reopen a report by runId.
+- **Cross-platform social-video search**: Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou and Weibo are the default alpha targets.
+- **Comment and transcript sampling**: collect titles, metadata, comment samples and transcript/text snippets where available for later evidence attribution.
+- **LLM evidence-backed synthesis**: OpenRouter-backed report generation binds important claims to source IDs; deterministic reports are used when no model is configured.
+- **Quality evaluation**: each report evaluates coverage, citation accuracy, evidence strength and conclusion risk.
+- **Integrated crawler runtime**: local crawler adapters, OpenCLI and yt-dlp are orchestrated behind VoxLens provider interfaces so production providers can replace them later.
 
-- **异步研究任务**：创建 run 后进入队列，前端可实时观看进度；任务完成后会持久化，支持通过 runId 重新打开。
-- **跨平台视频社媒搜索**：默认覆盖 Bilibili、Douyin、YouTube、小红书、知乎、快手、微博；百度/贴吧不纳入默认范围。
-- **评论与字幕采样**：采集视频标题、基础信息、评论区样本、字幕或文本片段，用于后续证据归因。
-- **LLM evidence-backed synthesis**：通过 OpenRouter 模型生成报告，要求每个重要判断绑定来源 ID；无模型配置时自动降级到确定性报告。
-- **质量评估**：每份报告都会评估覆盖率、引用准确率、证据强度和结论风险，避免把弱证据包装成强结论。
-- **一体化采集运行时**：OpenCLI、VoxLens crawler runtime、yt-dlp 等能力统一在产品运行时内编排；线上稳定 provider 可通过同一接口替换。
+## Difference From Generic Agents
 
-## 与通用 Agent / 研究工具的区别
+| Dimension | Generic Agent / Research Tool | VoxLens |
+| --- | --- | --- |
+| Goal | Broad task execution and web search | Evidence-backed social-video research |
+| Sources | Web pages, documents and tool calls | Videos, transcripts, comments, creator content and social posts |
+| Best questions | Open-ended browsing and task execution | Market insight, user feedback, trend analysis and competitor reputation |
+| Output | Summaries or task results | Source-grounded research reports with quality checks |
+| Evidence granularity | Usually web pages or search results | Comment, subtitle, video and post-level evidence |
+| Users | Technical users and general researchers | Product, marketing, operations, content, research and business teams |
 
-OpenClaw、Hermes 等通用 Agent 更擅长开放网页搜索、任务执行、资料整理或自动化操作。VoxLens 的定位更垂直：专注于视频社媒中的业务研究。
+VoxLens is not a replacement for a generic agent. It is a vertical research assistant for social-video evidence.
 
-| 对比维度 | 通用 Agent / 研究工具 | VoxLens |
-|---|---|---|
-| 主要目标 | 完成广泛任务、搜索网页、执行流程 | 从视频社媒中生成可引用研究报告 |
-| 信息来源 | 通用网页、搜索结果、文档、工具调用 | 视频、字幕、评论、创作者内容和社媒讨论 |
-| 适用问题 | 开放式问答、网页调研、任务执行 | 市场洞察、用户反馈、内容趋势、竞品口碑 |
-| 输出方式 | 摘要、任务结果、网页资料整理 | 证据驱动的研究报告和质量评估 |
-| 优势 | 泛化能力强，适合多任务 | 垂直场景更深，围绕视频社媒优化 |
-| 证据粒度 | 通常引用网页或搜索结果 | 更关注评论、字幕、视频来源等一线证据 |
-| 面向用户 | 技术用户、研究人员、自动化使用者 | 产品、市场、运营、内容、研究和业务团队 |
+## Recommended Query Style
 
-VoxLens 不追求替代通用 Agent。它更像一个视频社媒研究助手：帮你找到相关视频，抽样评论和字幕，整理证据，生成业务可读的报告，并标出结论风险。
-
-## 适合谁试用
-
-- 产品经理：发现真实用户需求、痛点和使用场景。
-- 市场团队：研究趋势、品牌声量和用户情绪。
-- 运营团队：复盘活动反馈、内容表现和用户讨论。
-- 内容团队：寻找选题、分析爆款视频和评论关注点。
-- 研究团队：快速完成视频社媒方向的 desk research。
-- 创业团队：验证市场方向、竞品定位和早期用户反馈。
-- 咨询 / 投研团队：把视频平台中的非结构化信息转成可引用材料。
-
-## 推荐 query 写法
-
-更推荐：
+Better:
 
 ```text
-分析 Bilibili 和抖音上关于 AI 陪伴产品的用户讨论，重点总结购买动机、担忧点和真实使用场景。
+Analyze Bilibili and Douyin discussions about AI companion products. Focus on buying motives, concerns and real usage scenarios.
 ```
 
-不太推荐：
+Too broad:
 
 ```text
-AI 陪伴
+AI companion
 ```
 
-好的 query 通常包含研究对象、平台范围、希望回答的问题、输出重点和业务背景。
+A strong query usually includes the research object, target platforms, questions to answer, output focus and business context.
 
-## 项目结构
-
-VoxLens 现在按一体化产品 monorepo 组织，所有运行能力都在仓库的产品目录下：
+## Project Structure
 
 ```text
-apps/api/                 # FastAPI research runtime，负责任务队列、采集编排、报告生成
-apps/web/                 # VoxLens Web 产品界面
-packages/crawler/         # VoxLens crawler runtime，承载中文社媒采集能力
-packages/research_cli/    # 本地 research CLI 与脚本化入口
-runtime/runs/             # 本地运行产物、采集缓存和报告事件，不提交到 Git
-docs/runtime/             # 产品运行时、接口和架构文档
+apps/api/                 FastAPI research runtime: queue, collection orchestration and report generation
+apps/web/                 VoxLens web product experience
+packages/crawler/         Integrated VoxLens crawler runtime for Chinese social-video platforms
+packages/research_cli/    Local research CLI and scripted entrypoint
+runtime/runs/             Local run artifacts, collection cache and report events; not committed
+reports/                  Example generated reports
+docs/runtime/             Runtime, interface and architecture documentation
 ```
 
-`packages/crawler/` 是产品内置运行时组件；它保留上游 license 和版本记录，方便合规审查与后续同步，但不再作为外部工程暴露在主结构中。上游版本记录见 `packages/crawler/UPSTREAM_REVISION`，第三方声明见 `THIRD_PARTY_NOTICES.md`。
+`packages/crawler/` is an internal runtime component, not a separate user-facing crawler project. Standalone upstream docs, promotional pages and unrelated platform paths have been removed from this repository. Legal notices are kept in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [packages/crawler/LICENSE](packages/crawler/LICENSE).
 
-## 内部试用启动
+## Local Alpha Setup
 
-首次启动前建议先安装所有本地依赖：
+Install local dependencies from the repository root:
 
 ```bash
 cd /path/to/VoxLens
 ./scripts/bootstrap.sh
 ```
 
-Windows PowerShell：
+Windows PowerShell:
 
 ```powershell
 cd C:\path\to\VoxLens
 .\scripts\bootstrap.ps1
 ```
 
-后端 API：
+Backend API:
 
-```powershell
-cd "C:\Users\hp\Documents\VoxLens\apps\api"
-copy .env.example .env
-# 在 .env 中填入 OPENROUTER_API_KEY 等必要配置；不要把密钥提交到仓库。
+```bash
+cd apps/api
+cp .env.example .env
+# Fill OPENROUTER_API_KEY and other local-only settings in .env.
 uv sync
 uv run uvicorn app.main:app --reload --port 8765
 ```
 
-前端 Web：
+Frontend web app:
 
-```powershell
-cd "C:\Users\hp\Documents\VoxLens\apps\web"
-pnpm install
+```bash
+cd apps/web
 pnpm dev
 ```
 
-默认前端地址通常是 `http://127.0.0.1:8080/`，后端 API 是 `http://127.0.0.1:8765/api`。
+The frontend is usually available at `http://127.0.0.1:8080/`; the backend API is usually `http://127.0.0.1:8765/api`.
 
-## 当前阶段
+`pnpm` is the supported frontend package manager. Use the bootstrap script for dependency installation, then run targeted commands from each workspace as needed.
 
-VoxLens 处于内部 alpha 阶段，重点验证：
+## Validation
 
-- 视频社媒 research workflow 是否成立。
-- 跨平台采样是否能稳定产生洞察。
-- 评论和字幕证据是否能支撑报告结论。
-- 异步 run、持久化、重开报告是否满足内部试用。
-- 哪些场景最适合优先产品化。
+Run the runtime smoke gate before changing backend, CLI, crawler, scripts or runtime docs:
 
-当前版本可能仍存在平台登录、覆盖不足、抓取波动和样本偏差。试用时请重点反馈：报告是否节省时间、结论是否可信、证据是否能复核、哪些场景会高频使用。
+```bash
+./scripts/validate_runtime.sh
+```
+
+Optional frontend build check for UI or API-client changes:
+
+```bash
+cd apps/web
+pnpm build
+```
+
+Runtime contract and operations docs:
+
+- [Runtime contract](docs/runtime/deepresearch-runtime-contract.md)
+- [Frontend integration](docs/runtime/frontend-integration.md)
+- [Ops runbook](docs/runtime/ops-runbook.md)
+- [Alpha exit criteria](docs/alpha-exit-criteria.md)
+
+## Current Stage
+
+VoxLens is an internal alpha focused on validating:
+
+- whether the social-video research workflow saves time;
+- whether cross-platform sampling produces stable insights;
+- whether comments and subtitles support report conclusions;
+- whether async runs, persistence and report reopening work well enough for internal testing;
+- which scenarios deserve productization first.
+
+Expect platform login friction, coverage gaps, crawler volatility, sample bias and changing anti-automation behavior. Treat every output as research assistance, not as legal, financial, medical or platform-compliance advice.
+
+## License and Third-Party Notices
+
+- Root usage terms and risk disclaimers: [LICENSE](LICENSE)
+- Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- Integrated crawler runtime license: [packages/crawler/LICENSE](packages/crawler/LICENSE)

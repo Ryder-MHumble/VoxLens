@@ -18,7 +18,7 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 # Basic configuration
-PLATFORM = "xhs"  # Platform, xhs | dy | ks | bili | wb | tieba | zhihu
+PLATFORM = "xhs"  # Platform, xhs | dy | ks | bili | wb | zhihu
 
 # 是否使用海外版小红书 (rednote.com)
 # 开启后 API 走 webapi.rednote.com，cookie 域使用 .rednote.com
@@ -110,7 +110,6 @@ ENABLE_GET_COMMENTS = True
 CRAWLER_MAX_COMMENTS_COUNT_SINGLENOTES = 10
 
 # Whether to enable the mode of crawling second-level comments. By default, crawling of second-level comments is not enabled.
-# If the old version of the project uses db, you need to refer to schema/tables.sql line 287 to add table fields.
 ENABLE_GET_SUB_COMMENTS = False
 
 # word cloud related
@@ -123,11 +122,11 @@ CUSTOM_WORDS = {
     "高频词": "专业术语",  # Example custom words
 }
 
-# Deactivate (disabled) word file path
-STOP_WORDS_FILE = "./docs/hit_stopwords.txt"
+# Optional word cloud stop-words file. Missing files are treated as an empty stop-word list.
+STOP_WORDS_FILE = "./assets/wordcloud/stopwords.txt"
 
-# Chinese font file path
-FONT_PATH = "./docs/STZHONGS.TTF"
+# Optional word cloud font file. Missing files fall back to the default WordCloud font.
+FONT_PATH = "./assets/wordcloud/STZHONGS.TTF"
 
 # Crawl interval
 CRAWLER_MAX_SLEEP_SEC = 2
@@ -141,5 +140,4 @@ from .xhs_config import *
 from .dy_config import *
 from .ks_config import *
 from .weibo_config import *
-from .tieba_config import *
 from .zhihu_config import *

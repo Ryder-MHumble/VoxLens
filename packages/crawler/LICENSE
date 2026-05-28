@@ -56,3 +56,22 @@ This license constitutes the entire agreement between the parties regarding the 
 2. 因本许可证引起的或与之相关的任何争议，双方应友好协商解决；协商不成时，任何一方可将争议提交至版权所有者所在地的人民法院诉讼解决。
 
 本许可证构成双方之间关于本软件的完整协议，取代并合并以前的讨论、交流和协议，无论是口头还是书面的。
+
+
+VOXLENS ADDITIONAL USE NOTICE AND ACCOUNT-RISK DISCLAIMER
+
+This repository integrates adapted crawler runtime code into VoxLens for low-frequency learning, research and internal alpha evaluation. The additional notice below does not remove the copyright notices or obligations stated above.
+
+1. Platform compliance remains the user's responsibility. Users must comply with each target platform's terms of service, robots rules, anti-abuse policies and applicable law.
+2. Misuse, high-frequency access, browser automation, automated login, abnormal cookie reuse or attempts to bypass platform controls may trigger rate limits, CAPTCHA or verification challenges, IP blocking, account restrictions, account suspension or account bans. This risk includes Xiaohongshu/RedNote (XHS), Douyin, Bilibili, Kuaishou, Weibo, Zhihu and other platforms.
+3. Do not use VoxLens or this runtime for mass crawling, spam, credential harvesting, resale of collected data, surveillance, collection of private or sensitive data without a lawful basis, or activity that disrupts platform operations.
+4. The software is provided as-is. VoxLens contributors are not responsible for account restrictions, platform enforcement, data loss, legal claims, business interruption or other damages caused by how the software is used.
+
+VOXLENS 附加使用提示与账号风险免责声明
+
+本仓库将改编后的采集运行时代码集成进 VoxLens，仅用于低频学习、研究和内部 alpha 评估。以下附加提示不删除或替代上文中的版权声明和许可义务。
+
+1. 使用者应自行遵守目标平台的服务条款、robots 规则、反滥用策略以及适用法律。
+2. 滥用、高频访问、浏览器自动化、自动化登录、异常 Cookie 复用或尝试绕过平台风控，可能触发限流、验证码或验证挑战、IP 封禁、账号限制、账号暂停或账号封禁。该风险包括小红书/RedNote（XHS）、抖音、Bilibili、快手、微博、知乎等平台。
+3. 不得将 VoxLens 或本运行时用于大规模爬取、垃圾信息、凭证收集、倒卖采集数据、监控跟踪、无合法依据采集私密或敏感数据，或干扰平台正常运行的行为。
+4. 本软件按现状提供。VoxLens 贡献者不对因使用方式导致的账号限制、平台处置、数据损失、法律争议、业务中断或其他损害负责。

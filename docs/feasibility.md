@@ -7,13 +7,13 @@
 - **社媒监听/洞察工具**：Brandwatch、Talkwalker、Sprinklr、Meltwater、Exolyt 等偏企业舆情、品牌监测、趋势分析，强在仪表盘和指标，不是面向个人的逐条证据报告。
 - **视频搜索/AI 搜索工具**：Virlo 这类产品已把 TikTok、YouTube、Instagram Reels 等短视频搜索做成 AI workflow，但中文平台覆盖通常不足。
 - **平台官方 API**：YouTube Data API 支持 `search.list`；TikTok 有 Research API / Display API 等，但权限、字段、配额和使用场景限制明显。
-- **产品内置采集运行时**：VoxLens crawler runtime 基于 MediaCrawler 能力，覆盖小红书、抖音、快手、B站、微博、贴吧、知乎，并已支持 CDP 真实浏览器模式，是很合适的工程基底。
+- **产品内置采集运行时**：VoxLens crawler runtime 已覆盖小红书/RedNote、抖音、快手、B站、微博、知乎等当前 alpha 需要的平台，并支持 CDP 真实浏览器模式，是合适的工程基底。
 
 ## 2. 可行性判断
 
 ### 可以做的部分
 
-- 跨平台关键词搜索：可行，B站/YouTube/小红书都已有可自动化入口；VoxLens crawler runtime 可补抖音、快手等中文平台。
+- 跨平台关键词搜索：可行，B站/YouTube/小红书都已有可自动化入口；VoxLens crawler runtime 可补抖音、快手、微博、知乎等中文平台。
 - 原始链接报告：可行，先汇聚标题、作者、发布时间、点赞/播放/评论等元数据即可形成 MVP。
 - 多模态分析：可行但成本更高；应分阶段做字幕/评论优先，视频关键帧和音频转写作为增强。
 - 真实浏览器 Cookie：可行，VoxLens crawler runtime 当前 CDP 模式已经接近这个思路；不建议直接解密浏览器 Cookie DB，CDP/持久化浏览器上下文更稳。
@@ -39,9 +39,6 @@
 
 ## 5. 参考链接
 
-- MediaCrawler: https://github.com/NanmiCoder/MediaCrawler
-- MediaCrawler README English: https://github.com/NanmiCoder/MediaCrawler/blob/main/README_en.md
-- MediaCrawler license: https://github.com/NanmiCoder/MediaCrawler/blob/main/LICENSE
 - YouTube Data API `search.list`: https://developers.google.com/youtube/v3/docs/search/list
 - YouTube Data API quota costs: https://developers.google.com/youtube/v3/determine_quota_cost
 - TikTok API rate limits: https://developers.tiktok.com/doc/tiktok-api-v2-rate-limit/

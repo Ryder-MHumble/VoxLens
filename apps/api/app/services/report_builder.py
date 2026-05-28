@@ -21,17 +21,9 @@ from app.models import (
     SourceGroup,
     VideoQuote,
 )
+from app.platform_catalog import PLATFORM_ORDER, platform_meta_for_report
 
-PLATFORM_META = {
-    "bilibili": {"name": "Bilibili", "logo": "https://www.bilibili.com/favicon.ico"},
-    "douyin": {"name": "Douyin", "logo": "https://www.douyin.com/favicon.ico"},
-    "youtube": {"name": "YouTube", "logo": "https://www.youtube.com/favicon.ico"},
-    "xiaohongshu": {"name": "Xiaohongshu", "logo": "https://www.xiaohongshu.com/favicon.ico"},
-    "zhihu": {"name": "Zhihu", "logo": "https://static.zhihu.com/heifetz/favicon.ico"},
-    "kuaishou": {"name": "Kuaishou", "logo": "https://www.kuaishou.com/favicon.ico"},
-    "weibo": {"name": "Weibo", "logo": "https://weibo.com/favicon.ico"},
-}
-PLATFORM_ORDER = ["bilibili", "douyin", "youtube", "xiaohongshu", "zhihu", "kuaishou", "weibo"]
+PLATFORM_META = platform_meta_for_report()
 
 STOPWORDS = {
     "the",

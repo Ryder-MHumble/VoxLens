@@ -1,130 +1,84 @@
 # DeepResearch Runtime Contract
 
-本文件描述 VoxLens 从用户 query 到 DeepResearch 报告的最小可用闭环，前端不要再推导核心研究状态，统一消费后端返回的数据。
+This document is the source of truth for the VoxLens runtime API, run lifecycle, stream events and report contract. Frontend code should render backend-owned state instead of deriving research facts locally.
 
-## API
+## Primary API Flow
 
-- `POST /api/research`：同步返回完整 `ResearchReport`，适合测试和非流式调用。
-- `POST /api/research/stream`：以 SSE 格式流式返回研究过程，前端结果页默认使用此接口。
-- `GET /api/demo-report`：只用于无 query 的展示，不再作为任意 query 的低质量回退。
+The default frontend flow is asynchronous and persisted:
 
-`ResearchRequest` 现在支持 `maxParallelPlatforms` 和 `maxParallelVideos`：前者控制多平台/Provider 并发，后者控制每个平台内视频、笔记、文章等内容详情抓取并发。前端可以传 3 作为默认值，强制实时刷新时传 4。
+1. `POST /api/runs` creates a `RunRecord`, stores `record.json`, initializes `events.jsonl`, and queues the run.
+2. `GET /api/runs/{runId}/events` replays stored SSE events first, then follows live events until `final_report` or `error`.
+3. `GET /api/runs/{runId}` reopens run metadata and includes the report when it exists.
+4. `GET /api/runs/{runId}/report` returns the persisted `ResearchReport` when available.
 
-## 流式事件
+Compatibility endpoints remain available, but they are not the primary frontend path:
 
-`/api/research/stream` 使用 `fetch` + `ReadableStream`，因为请求体是 POST JSON，不使用 `EventSource`。
+- `POST /api/research`: synchronous `ResearchReport` response for smoke tests and non-stream callers.
+- `POST /api/research/stream`: direct POST-based SSE stream for legacy clients.
+- `GET /api/demo-report`: demo data only when the user has no query.
 
-`sources`、`outline`、`report_patch`、`section_*` 和 `final_report` 仍持续向前端流式输出；前端可以边收集来源、边显示目录、边追加报告正文。
+`ResearchRequest` supports `maxParallelPlatforms` and `maxParallelVideos`. The current frontend sends conservative defaults for normal runs and raises limits for deep re-runs.
 
-事件顺序：
+## Run Storage
 
-1. `run_started`：返回 `runId`、`query`、`stages`，前端创建 draft report。
-2. `stage`：更新 `ui.stages`、整体 `progress`、当前阶段文案。
-3. `plan`：返回 `ResearchPlan` 和 `QueryPlannerAgent` trace。
-4. `provider_started`：告诉前端正在访问哪个平台/Provider。
-5. `sources`：每个 Provider 完成后增量返回 `sources[]` 和 `RunLog`。
-6. `agent_step`：返回爬虫、证据守卫等 Agent 的阶段性 trace。
-7. `evidence`：返回排序后的来源，包含 evidence/relevance 相关字段。
-8. `outline`：返回后端生成的 `outline`、`takeaways`、`insights`、`coverage`、`warnings`。
-9. `report_patch`：返回不含正文 section 的报告壳，用于前端进入报告布局。
-10. `section_started` / `section_delta` / `section_complete`：正文流式输出；前端追加 `delta`，完成后用完整 section 覆盖。
-11. `final_report`：返回最终完整 `ResearchReport`。
-12. `error`：返回失败信息，保留已收集到的阶段/来源。
+Run files are stored under `runtime/runs/research/{runId}/`:
 
-## 前端模块与后端字段
+- `record.json`: run status, progress, request, timestamps and final report pointer.
+- `events.jsonl`: append-only stream events with an added `sequence` field.
+- `report.json`: final persisted `ResearchReport` after `final_report`.
 
-### 进度模块
+The in-process queue is an alpha implementation. It is safe for local/single-node runs, but it is not a distributed job system.
 
-读取：
+## Stream Events
 
-- `report.ui.stages[]`
-- `event.progress`
-- `event.message`
-- `report.warnings[]`
+Both `/api/runs/{runId}/events` and `/api/research/stream` use SSE. The run endpoint adds persisted replay and event `sequence`; event names and payload fields should stay backward-compatible.
 
-用途：
+Current event order:
 
-- 显示规划、搜索、证据整理、报告生成四阶段。
-- 失败时保留失败 Provider 的提示，而不是空白 loading。
+1. `run_started`: returns `runId`, `query`, `need`, `lang`, initial `stages` and a message.
+2. `stage`: updates stage status, progress and message.
+3. `plan`: returns `ResearchPlan` and the `QueryPlannerAgent` step.
+4. `provider_started`: announces the active platform/provider target.
+5. `sources`: returns an incremental `sources[]` batch and `RunLog` for the finished provider.
+6. `agent_step`: returns crawler, evidence guard or synthesis trace.
+7. `evidence`: returns ranked sources after evidence scoring.
+8. `outline`: returns `outline`, `takeaways`, `insights`, `coverage`, `quality` and warnings.
+9. `report_patch`: returns the report shell with empty sections so the UI can enter report layout.
+10. `section_started`: starts a report section with an empty body.
+11. `section_delta`: appends text to the current section body.
+12. `section_complete`: replaces the streamed section with the complete section object.
+13. `final_report`: returns the final complete `ResearchReport`.
+14. `error`: returns a terminal failure message while preserving replayable prior events.
 
-### Sources 模块
+Do not rename events, remove fields, or reorder the core lifecycle without a frontend migration.
 
-读取：
+## Frontend-Owned vs Backend-Owned State
 
-- `report.sources[]`
-- `source.id`
-- `source.platform`
-- `source.sourceType`
-- `source.domain`
-- `source.author`
-- `source.url`
-- `source.summary`
-- `source.evidenceChannels[]`
-- `source.quality`
-- `source.provider`
-- `source.evidenceScore`
-- `source.relevanceScore`
-- `source.citationCount`
-- `source.badges[]`
-- `source.highlights[]`
-- `source.whyRelevant`
+Frontend responsibilities:
 
-用途：
+- Create a run for a query.
+- Subscribe to run events.
+- Render progress, source cards, outline, citations, section deltas and errors.
+- Reopen an existing run when the URL contains `run=...`.
 
-- 右侧来源卡片按平台筛选。
-- 引用 hover/click 通过 `source.id` 高亮卡片。
-- `citationCount` 让前端优先展示被报告多次引用的来源。
+Backend-owned state:
 
-### 目录模块
+- `report.ui.stages[]`, `event.progress`, `event.message` for progress.
+- `report.sources[]` and source IDs for source cards and citation highlighting.
+- `report.outline[]` for the table of contents.
+- `report.takeaways[]`, `report.insights[]`, `report.coverage` and `report.sections[]` for report content.
+- `citations`, `sourceIds`, `quote.sourceId` and `table.evidence` for source linkage.
 
-读取：
+The frontend may create a temporary draft report while waiting, but the final report shape and research claims come from the backend.
 
-- `report.outline[]`
-- `outline.id`
-- `outline.label`
-- `outline.summary`
-- `outline.sourceIds[]`
-- `outline.citationCount`
-- `outline.status`
+## Fallback and Evidence Rules
 
-用途：
+- If all live providers fail, the backend returns an evidence-limited report or a failed run; it must not replace the user's query with canned demo facts.
+- `minLiveSources` adds a `FallbackGuardAgent` trace when collected sources are below the requested floor. Current report status still comes from collected sources, warnings and quality evaluation; callers should read `confidence`, `quality.warnings`, `warnings[]` and `agentTrace` instead of assuming `minLiveSources` always forces `status=partial`.
+- `/api/demo-report` is the only endpoint that intentionally returns sample data.
 
-- 左侧目录完全由后端报告结构驱动。
-- 点击目录滚动到同名 section。
-- 后续可以用 `sourceIds` 做“本节证据来源”预览。
+## Extension Points
 
-### 报告正文模块
-
-读取：
-
-- `report.coverage`
-- `report.insights[]`
-- `report.takeaways[]`
-- `report.sections[]`
-- `section.kind`
-- `section.body`
-- `section.sourceIds[]`
-- `section.metrics`
-- `section.data`
-- `section.bullets[].citations`
-- `section.quote.sourceId`
-- `section.table[].metrics`
-- `section.table[].evidence`
-
-用途：
-
-- 所有引用 ID 均由后端生成。
-- 通用 DeepResearch 结构用 `coverage` 描述采集覆盖，用 `insights` 承载结论/风险/共识，用 `section.sourceIds` 连接章节与证据。
-- 前端只负责渲染、定位、高亮，不再自行拼接 citations。
-
-## 回退策略
-
-- 如果实时 Provider 全部失败，后端生成 evidence-limited report，说明失败原因和下一步，不编造事实结论。
-- 如果来源数量低于 `minLiveSources`，后端标记 `status=partial` 和 `confidence=low/insufficient`，仍基于真实来源生成报告。
-- 只有 `/api/demo-report` 才返回示例数据。
-
-## 后续扩展点
-
-- 增加持久化 run storage：按 `runId` 重新打开报告。
-- 增加队列任务：长时间抓取时前端先创建 run，再订阅 stream。
-- 增加 LLM/VLM synthesis：替换当前启发式 `report_builder`，但保持同一份 `ResearchReport` contract。
+- Replace the in-process queue with an external queue only after the alpha thresholds in `docs/alpha-exit-criteria.md` require it.
+- Add production provider adapters behind the existing provider registry without changing the `ResearchReport` schema.
+- Add LLM/VLM synthesis behind `report_builder` while preserving source IDs and citation semantics.
