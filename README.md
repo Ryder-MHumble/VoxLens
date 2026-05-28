@@ -1,6 +1,8 @@
-# VoxLens
+# Turn Social Video Noise Into Evidence-Backed Insight
 
 [English](README.md) | [中文](README.zh-CN.md)
+
+<img src="public/Banner.png" alt="Banner" width="720">
 
 > DeepResearch for social video. Give VoxLens a research question and it searches across Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou, Weibo and similar social-video sources, samples comments and transcripts when available, then generates an evidence-backed report with source references and quality checks.
 
@@ -112,20 +114,6 @@ AI companion
 
 A strong query usually includes the research object, target platforms, questions to answer, output focus and business context.
 
-## Project Structure
-
-```text
-apps/api/                 FastAPI research runtime: queue, collection orchestration and report generation
-apps/web/                 VoxLens web product experience
-packages/crawler/         Integrated VoxLens crawler runtime for Chinese social-video platforms
-packages/research_cli/    Local research CLI and scripted entrypoint
-runtime/runs/             Local run artifacts, collection cache and report events; not committed
-reports/                  Example generated reports
-docs/runtime/             Runtime, interface and architecture documentation
-```
-
-`packages/crawler/` is an internal runtime component, not a separate user-facing crawler project. Standalone upstream docs, promotional pages and unrelated platform paths have been removed from this repository. Legal notices are kept in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [packages/crawler/LICENSE](packages/crawler/LICENSE).
-
 ## Local Alpha Setup
 
 Install local dependencies from the repository root:
@@ -158,8 +146,6 @@ Frontend web app:
 cd apps/web
 pnpm dev
 ```
-
-The frontend is usually available at `http://127.0.0.1:8080/`; the backend API is usually `http://127.0.0.1:8765/api`.
 
 `pnpm` is the supported frontend package manager. Use the bootstrap script for dependency installation, then run targeted commands from each workspace as needed.
 

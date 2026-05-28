@@ -1,4 +1,4 @@
-# VoxLens
+# 把视频社媒信号变成可引用的研究洞察
 
 [English](README.md) | [中文](README.zh-CN.md)
 
@@ -112,20 +112,6 @@ AI 陪伴
 
 好的 query 通常包含研究对象、平台范围、希望回答的问题、输出重点和业务背景。
 
-## 项目结构
-
-```text
-apps/api/                 FastAPI research runtime，负责任务队列、采集编排、报告生成
-apps/web/                 VoxLens Web 产品界面
-packages/crawler/         VoxLens 内置采集运行时，承载中文视频社媒采集能力
-packages/research_cli/    本地 research CLI 与脚本化入口
-runtime/runs/             本地运行产物、采集缓存和报告事件，不提交到 Git
-reports/                  示例报告
-docs/runtime/             产品运行时、接口和架构文档
-```
-
-`packages/crawler/` 是 VoxLens 的内部运行时组件，不再作为独立爬虫项目对外暴露。上游独立 README、文档站、推广页面和与当前默认视频社媒范围无关的平台路径已经移除；必要的合规声明保留在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 [packages/crawler/LICENSE](packages/crawler/LICENSE)。
-
 ## 内部试用启动
 
 首次启动前建议先安装所有本地依赖：
@@ -158,8 +144,6 @@ uv run uvicorn app.main:app --reload --port 8765
 cd apps/web
 pnpm dev
 ```
-
-默认前端地址通常是 `http://127.0.0.1:8080/`，后端 API 是 `http://127.0.0.1:8765/api`。
 
 前端统一使用 `pnpm`。依赖安装优先通过 bootstrap 脚本完成，之后按需进入各 workspace 运行具体命令。
 
