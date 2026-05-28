@@ -1,10 +1,12 @@
-# Turn Social Video Noise Into Evidence-Backed Insight
+# Turn Social Video Evidence Into Citable Research
 
-[English](README.md) | [中文](README.zh-CN.md)
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">中文</a>
+</p>
 
 <img src="public/Banner.png" alt="Banner" width="720">
 
-> DeepResearch for social video. Give VoxLens a research question and it searches across Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou, Weibo and similar social-video sources, samples comments and transcripts when available, then generates an evidence-backed report with source references and quality checks.
+> Evidence-first DeepResearch for social video. Give VoxLens a research question and it searches Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou, Weibo and similar sources, samples titles, metadata, comments and transcripts/text snippets when available, then generates a citable report with source references and quality checks.
 
 ## Important Risk Notice
 
@@ -20,9 +22,9 @@ See [LICENSE](LICENSE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [pa
 
 ## Positioning
 
-VoxLens is an AI research product for social-video intelligence. It helps product, marketing, operations, content and research teams turn scattered signals from videos, comments, subtitles and creator posts into business insights that can be cited, reviewed and reused.
+VoxLens is an evidence-first research product for social-video intelligence. It helps product, marketing, operations, content and research teams turn scattered signals from titles, descriptions, comments, transcripts, creator posts and platform metadata into business insights that can be cited, reviewed and reused.
 
-The goal is not to crawl more data for its own sake. The goal is to convert social-video evidence into structured reports with traceable sources and explicit uncertainty.
+The goal is not to crawl more data or imply that every frame has been understood. The goal is to convert accessible social-video evidence into structured reports with traceable sources and explicit uncertainty. Frame, audio and visual analysis can enhance the workflow later; the alpha is transcript/comment/context first.
 
 ## Demo
 
@@ -35,7 +37,7 @@ The goal is not to crawl more data for its own sake. The goal is to convert soci
 Real user feedback, purchase sentiment, product discussion and cultural trends increasingly happen inside video platforms and comment sections. These materials are hard for traditional search and generic agents to use well because:
 
 - signals are fragmented across platforms, videos and comment threads;
-- video content often needs titles, descriptions, subtitles, frames or comments before it can be analyzed;
+- video research often starts with titles, descriptions, transcripts/subtitles, comments and platform context; frame or audio analysis is an optional enhancement, not the alpha baseline;
 - comment sections are noisy but contain first-hand user language;
 - research conclusions often lack traceable evidence;
 - business teams need reusable findings, not raw scraped files.
@@ -80,7 +82,7 @@ Best for content strategy, short-video topics, creator partnership screening and
 
 - **Async research runs**: create a run, stream progress, persist results and reopen a report by runId.
 - **Cross-platform social-video search**: Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou and Weibo are the default alpha targets.
-- **Comment and transcript sampling**: collect titles, metadata, comment samples and transcript/text snippets where available for later evidence attribution.
+- **Evidence-first sampling**: collect titles, metadata, comment samples and transcript/text snippets where available; visual/audio understanding is treated as a later enhancement rather than a required claim.
 - **LLM evidence-backed synthesis**: OpenRouter-backed report generation binds important claims to source IDs; deterministic reports are used when no model is configured.
 - **Quality evaluation**: each report evaluates coverage, citation accuracy, evidence strength and conclusion risk.
 - **Integrated crawler runtime**: local crawler adapters, OpenCLI and yt-dlp are orchestrated behind VoxLens provider interfaces so production providers can replace them later.
@@ -93,10 +95,10 @@ Best for content strategy, short-video topics, creator partnership screening and
 | Sources | Web pages, documents and tool calls | Videos, transcripts, comments, creator content and social posts |
 | Best questions | Open-ended browsing and task execution | Market insight, user feedback, trend analysis and competitor reputation |
 | Output | Summaries or task results | Source-grounded research reports with quality checks |
-| Evidence granularity | Usually web pages or search results | Comment, subtitle, video and post-level evidence |
+| Evidence granularity | Usually web pages or search results | Comment, transcript/text, source and post-level evidence |
 | Users | Technical users and general researchers | Product, marketing, operations, content, research and business teams |
 
-VoxLens is not a replacement for a generic agent. It is a vertical research assistant for social-video evidence.
+VoxLens is not a replacement for a generic agent. It is a vertical research assistant for social-video evidence: find sources, sample the accessible context, cite what supports the claims and mark uncertainty when evidence is thin.
 
 ## Recommended Query Style
 

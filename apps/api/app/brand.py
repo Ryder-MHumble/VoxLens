@@ -11,18 +11,18 @@ PRODUCT_NAME = "VoxLens"
 BRAND: dict[str, Any] = {
     "productName": PRODUCT_NAME,
     "slogans": {
-        "zh": "研究，不止文字",
-        "en": "Research beyond text",
+        "zh": "视频证据，可信研究",
+        "en": "Citable social-video research",
     },
     "positioning": {
-        "zh": "面向视频社媒的多模态 DeepResearch Agent",
-        "en": "A multimodal DeepResearch agent for social video evidence.",
+        "zh": "面向视频社媒证据的 DeepResearch 工作台",
+        "en": "An evidence-first DeepResearch workspace for social-video signals.",
     },
     "oneLiner": {
-        "zh": "让 AI 看完视频、评论和字幕，把创作者观点压缩成可验证的研究报告。",
-        "en": "Let AI watch videos, comments and transcripts, then turn creator signals into a verifiable research report.",
+        "zh": "从标题、评论、字幕/逐字稿和平台元数据中整理可核验证据，生成可引用的研究报告。",
+        "en": "Turn titles, comments, transcripts and platform metadata into verifiable, citable research reports.",
     },
-    "personality": ["calm", "evidence-first", "multimodal", "source-aware"],
+    "personality": ["calm", "evidence-first", "source-aware", "scope-honest"],
     "visualSystem": {
         "colors": {
             "inkPlum": "#201A36",
@@ -41,7 +41,7 @@ BRAND: dict[str, Any] = {
             "cjk": "Noto Sans SC",
             "numeric": "Space Grotesk",
         },
-        "logoConcept": "A folded V-shaped prism lens around a play pupil, with voice bars and one citation node: watch, listen, cite.",
+        "logoConcept": "A folded V-shaped evidence lens around a play/source mark, with voice bars and one citation node: search, sample, cite.",
         "assets": {
             "mark": "/brand/voxlens-mark.svg",
             "favicon": "/favicon.svg",

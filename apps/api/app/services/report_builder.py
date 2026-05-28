@@ -202,7 +202,7 @@ def build_report(
 
     report = ResearchReport(
         runId=run_id,
-        slogan="研究，不止文字" if zh else "Research beyond text",
+        slogan="视频证据，可信研究" if zh else "Citable social-video research",
         title=_title_from_query(query, zh),
         query=query,
         need=need,

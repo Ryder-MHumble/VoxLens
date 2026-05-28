@@ -1,7 +1,7 @@
 [project]
 name = "voxlens-backend"
 version = "0.1.0"
-description = "VoxLens FastAPI backend for multimodal social-video DeepResearch."
+description = "VoxLens FastAPI backend for evidence-first social-video DeepResearch."
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",

@@ -22,6 +22,14 @@ class LlmSynthesisResult:
     model: str = ""
 
 
+@dataclass
+class SourceSelectionResult:
+    sources: list[Source] = field(default_factory=list)
+    source_ids: list[int] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    model: str = ""
+
+
 def synthesize_with_llm(
     *,
     need: str,
@@ -38,6 +46,16 @@ def synthesize_with_llm(
         return None
 
     model = os.getenv("OPENROUTER_MODEL", "z-ai/glm-5.1")
+    selection = select_sources_with_llm(
+        need=need,
+        query=query,
+        lang=lang,
+        sources=sources,
+        coverage=coverage,
+        report_kind=report_kind,
+    )
+    synthesis_sources = selection.sources if selection and selection.sources else sources
+    selected_source_ids = [source.id for source in synthesis_sources]
     payload = {
         "model": model,
         "messages": [
@@ -48,9 +66,11 @@ def synthesize_with_llm(
                     need=need,
                     query=query,
                     lang=lang,
-                    sources=sources,
+                    sources=synthesis_sources,
                     coverage=coverage,
                     report_kind=report_kind,
+                    selected_source_ids=selected_source_ids,
+                    total_source_count=len(sources),
                 ),
             },
         ],
@@ -60,9 +80,69 @@ def synthesize_with_llm(
     }
     content = _post_chat_completion(api_key, payload)
     parsed = _parse_json(content)
-    result = _result_from_payload(parsed, valid_ids={source.id for source in sources})
+    result = _result_from_payload(parsed, valid_ids=set(selected_source_ids))
+    if selection and selection.warnings:
+        result.warnings = [*selection.warnings, *result.warnings][:6]
     result.model = model
     return result
+
+
+def select_sources_with_llm(
+    *,
+    need: str,
+    query: str,
+    lang: str,
+    sources: list[Source],
+    coverage: CoverageSummary,
+    report_kind: str,
+    max_sources: int | None = None,
+) -> SourceSelectionResult | None:
+    if not _enabled() or not sources:
+        return None
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        return None
+
+    model = os.getenv("OPENROUTER_MODEL", "z-ai/glm-5.1")
+    max_selected = max_sources or int(os.getenv("VOXLENS_LLM_SELECTED_SOURCE_LIMIT", "24"))
+    max_selected = max(1, min(max_selected, len(sources)))
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": _selection_system_prompt(lang)},
+            {
+                "role": "user",
+                "content": _selection_prompt(
+                    need=need,
+                    query=query,
+                    lang=lang,
+                    sources=sources,
+                    coverage=coverage,
+                    report_kind=report_kind,
+                    max_sources=max_selected,
+                ),
+            },
+        ],
+        "temperature": float(os.getenv("OPENROUTER_SELECTION_TEMPERATURE", "0.1")),
+        "max_tokens": int(os.getenv("OPENROUTER_SELECTION_MAX_TOKENS", "1800")),
+        "response_format": {"type": "json_object"},
+    }
+    content = _post_chat_completion(api_key, payload)
+    parsed = _parse_json(content)
+    selected_ids = _valid_ids(
+        parsed.get("selectedSourceIds", parsed.get("sourceIds", parsed.get("sources", []))),
+        {source.id for source in sources},
+        limit=max_selected,
+    )
+    sources_by_id = {source.id: source for source in sources}
+    selected_sources = [sources_by_id[source_id] for source_id in selected_ids if source_id in sources_by_id]
+    warnings = [str(item)[:240] for item in parsed.get("warnings", []) if str(item).strip()]
+    return SourceSelectionResult(
+        sources=selected_sources,
+        source_ids=selected_ids,
+        warnings=warnings[:6],
+        model=model,
+    )
 
 
 def _enabled() -> bool:
@@ -166,7 +246,7 @@ def _sanitize_sections(items: Any, valid_ids: set[int]) -> list[dict[str, Any]]:
             "body": body,
             "bullets": _sanitize_citation_items(item.get("bullets", []), valid_ids),
             "quote": None,
-            "table": item.get("table", []) if isinstance(item.get("table"), list) else [],
+            "table": _sanitize_table_rows(item.get("table", []), valid_ids),
             "sourceIds": _valid_ids(item.get("sourceIds", item.get("citations", [])), valid_ids),
             "metrics": item.get("metrics", {}) if isinstance(item.get("metrics"), dict) else {},
             "data": item.get("data", {}) if isinstance(item.get("data"), dict) else {},
@@ -175,20 +255,48 @@ def _sanitize_sections(items: Any, valid_ids: set[int]) -> list[dict[str, Any]]:
     return sanitized
 
 
-def _valid_ids(values: Any, valid_ids: set[int]) -> list[int]:
+def _sanitize_table_rows(items: Any, valid_ids: set[int]) -> list[dict[str, Any]]:
+    sanitized: list[dict[str, Any]] = []
+    if not isinstance(items, list):
+        return sanitized
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "")).strip()
+        if not name:
+            continue
+        sanitized.append({
+            "name": name[:120],
+            "signal": str(item.get("signal", ""))[:260],
+            "support": _int_range(item.get("support", item.get("lowLight", 3)), 1, 5),
+            "risk": _int_range(item.get("risk", 3), 1, 5),
+            "freshness": _int_range(item.get("freshness", item.get("battery", 3)), 1, 5),
+            "confidence": _int_range(item.get("confidence", item.get("camera", 3)), 1, 5),
+            "price": str(item.get("price", ""))[:80],
+            "metrics": item.get("metrics", {}) if isinstance(item.get("metrics"), dict) else {},
+            "evidence": _valid_ids(item.get("evidence", item.get("sourceIds", [])), valid_ids),
+        })
+    return sanitized
+
+
+def _valid_ids(values: Any, valid_ids: set[int], limit: int | None = None) -> list[int]:
     if isinstance(values, (str, int)):
         values = [values]
     if not isinstance(values, list):
         return []
     ids: list[int] = []
     for value in values:
+        if isinstance(value, dict):
+            value = value.get("id", value.get("sourceId", value.get("source_id")))
         try:
             source_id = int(value)
         except (TypeError, ValueError):
             continue
         if source_id in valid_ids and source_id not in ids:
             ids.append(source_id)
-    return ids[:6]
+            if limit is not None and len(ids) >= limit:
+                break
+    return ids
 
 
 def _safe_id(value: str) -> str:
@@ -202,6 +310,53 @@ def _int_range(value: Any, low: int, high: int) -> int:
     except (TypeError, ValueError):
         parsed = low
     return max(low, min(high, parsed))
+
+
+def _selection_system_prompt(lang: str) -> str:
+    if lang == "zh":
+        return (
+            "你是 VoxLens 的证据筛选员。你会看到本轮收集到的全部 sourceCandidates，"
+            "任务是选择最值得进入正文合成的高置信视频/内容来源。只输出 JSON。"
+        )
+    return (
+        "You are the evidence selection analyst for VoxLens. You will see every collected sourceCandidate. "
+        "Select the highest-confidence sources that should be imported into report synthesis. Return JSON only."
+    )
+
+
+def _selection_prompt(
+    *,
+    need: str,
+    query: str,
+    lang: str,
+    sources: list[Source],
+    coverage: CoverageSummary,
+    report_kind: str,
+    max_sources: int,
+) -> str:
+    zh = lang == "zh"
+    instructions = (
+        "从全部候选中选择最能支撑用户问题的高置信来源。优先选择有评论、字幕/文本、摘要、明确 URL、跨平台互证和与问题直接相关的来源；"
+        "避免只因排序靠前或热度高就选择。返回 selectedSourceIds，按推荐引用优先级排序。"
+        if zh
+        else "Select the highest-confidence sources for the user question from all candidates. Prefer sources with comments, transcript/text, summaries, URLs, cross-platform corroboration and direct relevance; do not select only because a source appears early or is popular. Return selectedSourceIds in recommended citation priority order."
+    )
+    return json.dumps(
+        {
+            "task": instructions,
+            "need": need,
+            "query": query,
+            "reportKind": report_kind,
+            "coverage": coverage.model_dump(),
+            "maxSelectedSources": max_sources,
+            "outputSchema": {
+                "selectedSourceIds": [1],
+                "warnings": ["string"],
+            },
+            "sourceCandidates": [_source_candidate_payload(source) for source in sources],
+        },
+        ensure_ascii=False,
+    )
 
 
 def _system_prompt(lang: str) -> str:
@@ -224,9 +379,12 @@ def _user_prompt(
     sources: list[Source],
     coverage: CoverageSummary,
     report_kind: str,
+    selected_source_ids: list[int] | None = None,
+    total_source_count: int | None = None,
 ) -> str:
     zh = lang == "zh"
-    source_pack = [_source_payload(source) for source in sources[:14]]
+    selected_source_ids = selected_source_ids or [source.id for source in sources]
+    source_pack = [_source_payload(source) for source in sources]
     schema = {
         "takeaways": [{"text": "string", "citations": [1]}],
         "insights": [{"id": "short-id", "kind": "answer|consensus|disagreement|risk|opportunity|coverage", "label": "string", "summary": "string", "confidence": 1, "sourceIds": [1]}],
@@ -254,17 +412,44 @@ def _user_prompt(
             "query": query,
             "reportKind": report_kind,
             "coverage": coverage.model_dump(),
+            "sourceSelection": {
+                "selectedSourceIds": selected_source_ids,
+                "selectedSourceCount": len(selected_source_ids),
+                "totalCollectedSources": total_source_count if total_source_count is not None else len(sources),
+                "selectionMethod": "LLM evidence selection over all collected source candidates",
+            },
             "sourceRules": [
+                "The sources array is the LLM-selected high-confidence subset from the full collected candidate pool.",
                 "Use only source ids present in sources.",
                 "Every takeaway and section bullet should have at least one citation when possible.",
                 "Mention uncertainty when evidence is thin, single-platform, or mostly title-only.",
                 "Do not cite a source unless the claim is supported by its title, summary, comments, or transcriptPreview.",
+                "Put the source ids that support each section body in section.sourceIds, even when bullets also carry citations.",
             ],
             "outputSchema": schema,
             "sources": source_pack,
         },
         ensure_ascii=False,
     )
+
+
+def _source_candidate_payload(source: Source) -> dict[str, Any]:
+    return {
+        "id": source.id,
+        "platform": source.platform,
+        "sourceType": source.sourceType,
+        "title": source.title[:220],
+        "creator": (source.creator or source.author)[:120],
+        "urlPresent": bool(source.url),
+        "summary": text_excerpt([source.summary], 260),
+        "evidenceScore": source.evidenceScore,
+        "evidenceChannels": source.evidenceChannels or source.metrics.get("evidence_channels", []),
+        "commentCount": len(source.comments),
+        "commentsPreview": text_excerpt([comment.text for comment in source.comments[:2]], 220),
+        "hasTranscript": bool(source.transcriptPreview),
+        "transcriptPreview": text_excerpt([source.transcriptPreview], 260),
+        "metrics": _compact_metrics(source.metrics),
+    }
 
 
 def _source_payload(source: Source) -> dict[str, Any]:
@@ -285,3 +470,15 @@ def _source_payload(source: Source) -> dict[str, Any]:
         ],
         "transcriptPreview": text_excerpt([source.transcriptPreview], 900),
     }
+
+
+def _compact_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    compact: dict[str, Any] = {}
+    for key, value in metrics.items():
+        if value in (None, "", [], {}):
+            continue
+        if isinstance(value, (str, int, float, bool)):
+            compact[key] = str(value)[:120] if isinstance(value, str) else value
+        if len(compact) >= 6:
+            break
+    return compact

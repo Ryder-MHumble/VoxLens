@@ -44,8 +44,8 @@ export const Route = createFileRoute("/results")({
   component: Results,
   head: () => ({
     meta: [
-      { title: "VoxLens Research - 研究，不止文字" },
-      { name: "description", content: "Cross-platform creator research results." },
+      { title: "VoxLens Research - 视频证据，可信研究" },
+      { name: "description", content: "Citable social-video evidence research results." },
     ],
   }),
 });
@@ -522,7 +522,11 @@ function Results() {
               {report.sections.map((section) => (
                 <section key={section.id} id={section.id} className="space-y-4">
                   <h2 className="text-xl font-bold tracking-tight">{section.title}</h2>
-                  {section.body && <p className="text-[15px] leading-relaxed text-foreground/85">{section.body}</p>}
+                  {section.body && (
+                    <p className="text-[15px] leading-relaxed text-foreground/85">
+                      {section.body} <CitationList ids={section.sourceIds ?? []} onHover={handleCitationHover} />
+                    </p>
+                  )}
                   {section.bullets.length > 0 && (
                     <ul className="space-y-2 text-sm text-foreground/85">
                       {section.bullets.map((item, i) => (
@@ -634,7 +638,7 @@ function ReportExportSheet({ report, title }: { report: ResearchReport; title: s
             <div>
               <p className="text-2xl font-bold tracking-tight">{report.productName || "VoxLens"}</p>
               <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[#7f7595]">
-                {report.slogan || (report.lang === "zh" ? "研究，不止文字" : "Research beyond text")}
+                {report.slogan || (report.lang === "zh" ? "视频证据，可信研究" : "Citable social-video research")}
               </p>
             </div>
           </div>
@@ -709,7 +713,11 @@ function ReportExportSheet({ report, title }: { report: ResearchReport; title: s
                 Section {String(index + 1).padStart(2, "0")}
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">{section.title}</h2>
-              {section.body && <p className="mt-4 text-[15px] leading-relaxed text-[#3a304c]">{section.body}</p>}
+              {section.body && (
+                <p className="mt-4 text-[15px] leading-relaxed text-[#3a304c]">
+                  {section.body} <ExportCitations ids={section.sourceIds ?? []} />
+                </p>
+              )}
               {section.bullets.length > 0 && (
                 <div className="mt-4 grid gap-2">
                   {section.bullets.map((item, bulletIndex) => (
@@ -787,7 +795,7 @@ function ReportExportSheet({ report, title }: { report: ResearchReport; title: s
         )}
 
         <div className="mt-10 flex items-center justify-between border-t border-[#ebe3f2] pt-6 text-xs text-[#8a7a99]">
-          <span>{report.productName || "VoxLens"} · {report.slogan || "Research beyond text"}</span>
+          <span>{report.productName || "VoxLens"} · {report.slogan || "Citable social-video research"}</span>
           <span>{report.runId || "local-report"}</span>
         </div>
       </div>
@@ -807,8 +815,8 @@ function ExportMetric({ label, value }: { label: string; value?: number }) {
 function ExportCitations({ ids }: { ids: Array<number | string> }) {
   if (!ids.length) return null;
   return (
-    <span className="ml-1 inline-flex gap-1 align-baseline text-[10px] font-bold text-[#8c63ff]">
-      {ids.slice(0, 6).map((id) => <span key={id}>[{id}]</span>)}
+    <span className="ml-1 inline-flex flex-wrap gap-1 align-baseline text-[10px] font-bold text-[#8c63ff]">
+      {ids.map((id) => <span key={id}>[{id}]</span>)}
     </span>
   );
 }
@@ -856,7 +864,7 @@ function CitationList({ ids, onHover }: { ids: Array<number | string>; onHover?:
   if (!ids.length) return null;
   return (
     <>
-      {ids.slice(0, 4).map((id) => (
+      {ids.map((id) => (
         <sup key={id} className="ml-0.5">
           <button
             type="button"
@@ -1614,7 +1622,7 @@ function createDraftReport(query: string, lang: "zh" | "en", runId = "", stages:
   return {
     runId,
     productName: "VoxLens",
-    slogan: lang === "zh" ? "\u7814\u7a76\uff0c\u4e0d\u6b62\u6587\u5b57" : "Research beyond text",
+    slogan: lang === "zh" ? "\u89c6\u9891\u8bc1\u636e\uff0c\u53ef\u4fe1\u7814\u7a76" : "Citable social-video research",
     title: query,
     query,
     need: query,

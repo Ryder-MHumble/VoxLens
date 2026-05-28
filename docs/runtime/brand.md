@@ -5,18 +5,18 @@
 **VoxLens**
 
 - **Vox**: creator voices, audience comments, spoken transcripts and public sentiment.
-- **Lens**: visual understanding, video evidence, source inspection and decision focus.
+- **Lens**: source inspection, video-context evidence and decision focus.
 
-VoxLens is meant to feel like a research lens for the creator web: not a text-only search box, but a system that can watch, listen, compare and cite.
+VoxLens is meant to feel like a research lens for the creator web: not a generic search box, but a system that can search, sample, compare and cite social-video evidence without overstating raw video understanding.
 
 ## Slogan
 
-- Chinese main title: **研究，不止文字**
-- English line: **Research beyond text**
+- Chinese main title: **视频证据，可信研究**
+- English line: **Citable social-video research**
 
 ## Positioning
 
-VoxLens is a multimodal social-video DeepResearch agent. It searches Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou and Weibo, samples videos/comments/transcripts when available, then produces a structured report with original source links and citation IDs.
+VoxLens is an evidence-first social-video DeepResearch workspace. It searches Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou and Weibo, samples titles, metadata, comments and transcripts/text snippets when available, then produces a structured report with original source links and citation IDs. Frame, audio and visual analysis are future enhancements, not the alpha baseline.
 
 ## Brand Principles
 
@@ -29,7 +29,7 @@ VoxLens is a multimodal social-video DeepResearch agent. It searches Bilibili, D
 ## Visual Direction
 
 - **Mood**: soft aurora research canvas, translucent glass cards, pale sky light, blush/violet gradients and quiet evidence signals.
-- **Logo concept**: a folded V-shaped lens/prism around a play pupil, with small voice bars and one coral citation node; it should read as watch + listen + cite, not an ocean drop or magnifying glass.
+- **Logo concept**: a folded V-shaped evidence lens/prism around a play/source mark, with small voice bars and one coral citation node; it should read as search + sample + cite, not an ocean drop or magnifying glass.
 - **Core colors**:
   - Ink plum: `#201A36`
   - Paper: `#FBFDFF`
