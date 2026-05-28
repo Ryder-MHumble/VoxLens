@@ -822,6 +822,44 @@ function ExportCitations({ ids }: { ids: Array<number | string> }) {
 }
 
 function ExportComparisonTable({ rows }: { rows: ResearchReport["sections"][number]["table"] }) {
+  const dimensionColumns = getDimensionColumns(rows);
+  if (dimensionColumns.length > 0) {
+    return (
+      <table className="mt-5 w-full overflow-hidden rounded-2xl text-left text-xs">
+        <thead className="bg-[#f2edf8] text-[10px] uppercase tracking-[0.14em] text-[#7f7595]">
+          <tr>
+            <th className="px-3 py-2 font-semibold">Candidate</th>
+            {dimensionColumns.map((dimension) => (
+              <th key={dimension.key} className="px-3 py-2 font-semibold">{dimension.label}</th>
+            ))}
+            <th className="px-3 py-2 font-semibold">Evidence</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white/70">
+          {rows.map((row) => (
+            <tr key={row.name} className="border-t border-[#eadff2] align-top">
+              <td className="px-3 py-3 font-semibold text-[#21182e]">
+                {row.name}
+                {row.signal && <div className="mt-1 max-w-[180px] text-[10px] font-normal text-[#7f7595]">{row.signal}</div>}
+              </td>
+              {dimensionColumns.map((column) => {
+                const dimension = getRowDimension(row, column.key);
+                return (
+                  <td key={column.key} className="px-3 py-3">
+                    <Stars n={scoreValue(dimension?.score, 3)} />
+                    {dimension?.summary && <div className="mt-1 max-w-[160px] text-[10px] leading-snug text-[#5c526d]">{dimension.summary}</div>}
+                    <ExportCitations ids={dimension?.evidence ?? []} />
+                  </td>
+                );
+              })}
+              <td className="px-3 py-3"><ExportCitations ids={row.evidence} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
   return (
     <table className="mt-5 w-full overflow-hidden rounded-2xl text-left text-xs">
       <thead className="bg-[#f2edf8] text-[10px] uppercase tracking-[0.14em] text-[#7f7595]">
@@ -838,10 +876,10 @@ function ExportComparisonTable({ rows }: { rows: ResearchReport["sections"][numb
         {rows.map((row) => (
           <tr key={row.name} className="border-t border-[#eadff2]">
             <td className="px-3 py-3 font-semibold text-[#21182e]">{row.name}</td>
-            <td className="px-3 py-3"><Stars n={row.support ?? row.lowLight} /></td>
-            <td className="px-3 py-3"><Stars n={row.risk ?? Math.max(1, 6 - row.video)} /></td>
-            <td className="px-3 py-3"><Stars n={row.freshness ?? row.battery} /></td>
-            <td className="px-3 py-3"><Stars n={row.confidence ?? row.camera} /></td>
+            <td className="px-3 py-3"><Stars n={scoreValue(row.support, row.lowLight, 3)} /></td>
+            <td className="px-3 py-3"><Stars n={legacyRisk(row)} /></td>
+            <td className="px-3 py-3"><Stars n={scoreValue(row.freshness, row.battery, 3)} /></td>
+            <td className="px-3 py-3"><Stars n={scoreValue(row.confidence, row.camera, 3)} /></td>
             <td className="px-3 py-3"><ExportCitations ids={row.evidence} /></td>
           </tr>
         ))}
@@ -1431,6 +1469,47 @@ function ComparisonTable({
   rows: ResearchReport["sections"][number]["table"];
   onCitationHover?: (sourceId: number | string | null) => void;
 }) {
+  const dimensionColumns = getDimensionColumns(rows);
+  if (dimensionColumns.length > 0) {
+    return (
+      <div className="glass overflow-x-auto rounded-2xl" style={{ boxShadow: "var(--shadow-glass)" }}>
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-white/50">
+              <th className="px-4 py-3 font-semibold">Candidate</th>
+              {dimensionColumns.map((dimension) => (
+                <th key={dimension.key} className="px-4 py-3 font-semibold">{dimension.label}</th>
+              ))}
+              <th className="px-4 py-3 font-semibold">Evidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.name} className="border-b border-white/30 align-top last:border-0">
+                <td className="px-4 py-3">
+                  <div className="font-medium">{row.name}</div>
+                  {row.signal && <div className="mt-1 max-w-[220px] text-xs normal-case tracking-normal text-muted-foreground">{row.signal}</div>}
+                  {row.price && <div className="mt-2 text-[11px] font-medium text-muted-foreground">{row.price}</div>}
+                </td>
+                {dimensionColumns.map((column) => {
+                  const dimension = getRowDimension(row, column.key);
+                  return (
+                    <td key={column.key} className="px-4 py-3">
+                      <Stars n={scoreValue(dimension?.score, 3)} />
+                      {dimension?.summary && <div className="mt-1 max-w-[210px] text-xs leading-relaxed text-muted-foreground">{dimension.summary}</div>}
+                      <CitationList ids={dimension?.evidence ?? []} onHover={onCitationHover} />
+                    </td>
+                  );
+                })}
+                <td className="px-4 py-3"><CitationList ids={row.evidence} onHover={onCitationHover} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <div className="glass overflow-hidden rounded-2xl" style={{ boxShadow: "var(--shadow-glass)" }}>
       <table className="w-full text-sm">
@@ -1451,10 +1530,10 @@ function ComparisonTable({
                 <div className="font-medium">{row.name}</div>
                 {row.signal && <div className="mt-1 max-w-[220px] text-xs normal-case tracking-normal text-muted-foreground">{row.signal}</div>}
               </td>
-              <td className="px-4 py-3"><Stars n={row.support ?? row.lowLight} /></td>
-              <td className="px-4 py-3"><Stars n={row.risk ?? Math.max(1, 6 - row.video)} /></td>
-              <td className="px-4 py-3"><Stars n={row.freshness ?? row.battery} /></td>
-              <td className="px-4 py-3"><Stars n={row.confidence ?? row.camera} /></td>
+              <td className="px-4 py-3"><Stars n={scoreValue(row.support, row.lowLight, 3)} /></td>
+              <td className="px-4 py-3"><Stars n={legacyRisk(row)} /></td>
+              <td className="px-4 py-3"><Stars n={scoreValue(row.freshness, row.battery, 3)} /></td>
+              <td className="px-4 py-3"><Stars n={scoreValue(row.confidence, row.camera, 3)} /></td>
               <td className="px-4 py-3"><CitationList ids={row.evidence} onHover={onCitationHover} /></td>
             </tr>
           ))}
@@ -1596,6 +1675,35 @@ function formatReportDate(value: string | undefined, lang: "zh" | "en") {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+type ComparisonTableRow = ResearchReport["sections"][number]["table"][number];
+
+function getDimensionColumns(rows: ComparisonTableRow[]) {
+  const columns: Array<{ key: string; label: string }> = [];
+  for (const row of rows) {
+    for (const dimension of row.dimensions ?? []) {
+      if (!dimension.key || columns.some((column) => column.key === dimension.key)) continue;
+      columns.push({ key: dimension.key, label: dimension.label || dimension.key });
+      if (columns.length >= 6) return columns;
+    }
+  }
+  return columns;
+}
+
+function getRowDimension(row: ComparisonTableRow, key: string) {
+  return row.dimensions?.find((dimension) => dimension.key === key);
+}
+
+function scoreValue(...values: Array<number | null | undefined>) {
+  const value = values.find((item) => typeof item === "number");
+  return Math.max(1, Math.min(5, Math.round(value ?? 3)));
+}
+
+function legacyRisk(row: ComparisonTableRow) {
+  if (typeof row.risk === "number") return scoreValue(row.risk);
+  if (typeof row.video === "number") return scoreValue(6 - row.video);
+  return 3;
 }
 
 function Stars({ n }: { n: number }) {

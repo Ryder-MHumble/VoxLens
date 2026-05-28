@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 from app.models import (
     CitationText,
+    ComparisonDimension,
     ComparisonRow,
     CoverageSummary,
     OutlineItem,
@@ -347,6 +348,18 @@ def _sections(
             ),
         ]
 
+    if _is_phone_decision_report(report_kind, need or query):
+        return _phone_decision_sections(
+            query=query,
+            need=need,
+            zh=zh,
+            sources=sources,
+            terms=terms,
+            risks=risks,
+            confidence=confidence,
+            coverage=coverage,
+        )
+
     return [
         ReportSection(
             id="executive-summary",
@@ -440,6 +453,228 @@ def _sections(
             metrics={"recommendedSourceCount": min(3, len(source_ids))},
         ),
     ]
+
+
+PHONE_DIMENSIONS = [
+    ("budget", "预算/价格", "Budget/price", ("预算", "价格", "价位", "3000", "4000", "5000", "price", "budget", "value")),
+    ("battery", "续航", "Battery", ("续航", "电池", "充电", "battery", "endurance", "charging")),
+    ("camera", "拍照", "Camera", ("拍照", "影像", "夜景", "样张", "camera", "photo", "low light")),
+    ("performance", "性能", "Performance", ("性能", "跑分", "游戏", "帧", "performance", "benchmark", "gaming", "fps")),
+    ("thermal", "散热", "Thermals", ("散热", "发热", "温度", "烫", "thermal", "heat", "hot", "temperature")),
+]
+
+
+def _is_phone_decision_report(report_kind: str, text: str) -> bool:
+    if report_kind != "decision":
+        return False
+    lowered = (text or "").lower()
+    phone_tokens = ["手机", "iphone", "phone", "redmi", "xiaomi", "oneplus", "oppo", "vivo", "荣耀", "honor", "pixel", "samsung", "galaxy"]
+    return any(token in lowered for token in phone_tokens)
+
+
+def _phone_decision_sections(
+    *,
+    query: str,
+    need: str,
+    zh: bool,
+    sources: list[Source],
+    terms: list[str],
+    risks: list[str],
+    confidence: str,
+    coverage: CoverageSummary,
+) -> list[ReportSection]:
+    source_ids = [s.id for s in sources[:6] if s.id]
+    rows = _phone_candidate_rows(sources, zh)
+    primary = rows[0].name if rows else (sources[0].title if sources else "")
+    backup = rows[1].name if len(rows) > 1 else primary
+    caution = _phone_caution(rows, risks, zh)
+    dimension_labels = "、".join(item[1] for item in PHONE_DIMENSIONS) if zh else ", ".join(item[2] for item in PHONE_DIMENSIONS)
+    need_text = need or query
+
+    final_body = (
+        f"首选：{primary}，因为当前证据在核心维度上最集中；备选：{backup}，适合在价格、系统或渠道更合适时选择；慎选：{caution}。适合人群：预算锁定 3000-5000 元、希望先用多来源测评排除明显短板的用户。主要反证：继续复核游戏满帧、夜拍、长时间发热和评论区差评是否来自同一场景。"
+        if zh
+        else f"Top pick: {primary}, because the current evidence is most concentrated across core dimensions. Backup: {backup}, useful when price, software preference or channel availability fits better. Caution: {caution}. Best fit: users with a 3000-5000 budget who want multi-source reviews to screen obvious weaknesses first. Counter-evidence to verify: full-frame gaming, low-light photos, sustained thermals and whether negative comments share the same scenario."
+    )
+
+    return [
+        ReportSection(
+            id="needs",
+            title="1. 我的需求" if zh else "1. My Needs",
+            kind="decision_needs",
+            body=(
+                f"本轮把「{need_text}」作为手机购买决策任务处理，先锁定预算与使用场景，再用来源中的字幕/正文、评论和标题证据验证候选机型。默认决策维度是：{dimension_labels}。当前置信度为 {confidence}。"
+                if zh
+                else f"This run treats '{need_text}' as a phone purchase decision: lock budget and usage scenarios first, then verify candidate phones with transcript/content, comment and title evidence. Default dimensions: {dimension_labels}. Current confidence: {confidence}."
+            ),
+            bullets=[
+                CitationText(
+                    text=("优先引用带字幕/正文或评论的来源，标题命中但无上下文的来源只做线索。" if zh else "Prioritize sources with transcript/content or comments; title-only matches are search leads."),
+                    citations=source_ids[:4],
+                )
+            ],
+            sourceIds=source_ids[:4],
+            metrics={"confidence": confidence, "reportKind": "decision", "scenario": "phone-recommendation"},
+            data={"coverage": coverage.model_dump(), "dimensions": [item[0] for item in PHONE_DIMENSIONS]},
+        ),
+        ReportSection(
+            id="candidates",
+            title="2. 候选机型" if zh else "2. Candidate Phones",
+            kind="candidate_map",
+            body=(
+                f"候选来自本轮排序靠前且与预算/手机推荐语义直接相关的来源。先看每个机型是否被多个来源或多个证据通道反复提到，再决定是否进入最终推荐。"
+                if zh
+                else "Candidates come from top-ranked sources that directly match the budget/phone-recommendation intent. Check whether each phone appears across multiple sources or evidence channels before trusting it as a recommendation."
+            ),
+            bullets=[
+                CitationText(text=_phone_candidate_sentence(row.name, row.evidence, zh), citations=row.evidence[:3])
+                for row in rows[:5]
+            ],
+            sourceIds=source_ids,
+            metrics={"candidateCount": len(rows), "primarySignals": terms[:5]},
+        ),
+        ReportSection(
+            id="dimension-comparison",
+            title="3. 维度对比" if zh else "3. Dimension Comparison",
+            kind="decision_matrix",
+            body=(
+                "下面的表格按候选机型展开，每个维度都绑定证据来源；分数只是证据强弱和语义倾向的初筛，不替代打开原视频复核测试场景。"
+                if zh
+                else "The table compares candidate phones by dimension with evidence links. Scores are first-pass evidence strength and semantic direction, not a substitute for opening the original videos to verify test scenarios."
+            ),
+            table=rows,
+            sourceIds=source_ids,
+            metrics={"dimensions": [item[0] for item in PHONE_DIMENSIONS]},
+        ),
+        ReportSection(
+            id="final-recommendation",
+            title="4. 最终推荐" if zh else "4. Final Recommendation",
+            kind="final_recommendation",
+            body=final_body,
+            bullets=[
+                CitationText(
+                    text=("先打开首选和备选的高证据来源，确认测试亮度、游戏帧率、拍摄样张和发热时长是否符合自己的使用场景。" if zh else "Open high-evidence sources for the top pick and backup first; verify brightness, game frame rate, photo samples and thermal duration against your use case."),
+                    citations=source_ids[:3],
+                ),
+                CitationText(
+                    text=("如果同一维度出现矛盾，优先看场景差异，而不是只看结论词。" if zh else "When a dimension conflicts across sources, compare scenario differences before trusting conclusion words."),
+                    citations=source_ids[1:5] or source_ids[:2],
+                ),
+            ],
+            sourceIds=source_ids,
+            metrics={"riskTerms": risks[:6], "confidence": confidence},
+        ),
+    ]
+
+
+def _phone_candidate_rows(sources: list[Source], zh: bool) -> list[ComparisonRow]:
+    rows: list[ComparisonRow] = []
+    for source in sources[:6]:
+        candidate = _candidate_name(source)
+        evidence = [source.id] if source.id else []
+        dimensions = [
+            ComparisonDimension(
+                key=key,
+                label=zh_label if zh else en_label,
+                score=_dimension_score(source, terms),
+                summary=_dimension_summary(source, zh_label if zh else en_label, terms, zh),
+                evidence=evidence,
+            )
+            for key, zh_label, en_label, terms in PHONE_DIMENSIONS
+        ]
+        rows.append(ComparisonRow(
+            name=candidate,
+            signal=_source_signal(source, zh),
+            support=_aggregate_dimension_score(dimensions, default=3),
+            risk=_dimension_risk_score(source),
+            freshness=4 if source.published else 3,
+            confidence=min(5, 2 + len(evidence) + (1 if source.comments else 0) + (1 if source.transcriptPreview else 0)),
+            price=_price_hint(source, zh),
+            dimensions=dimensions,
+            metrics={
+                "sourceCount": 1,
+                "platforms": [source.platform],
+                "hasTranscript": bool(source.transcriptPreview or getattr(source, "transcriptText", "")),
+                "commentCount": len(source.comments),
+            },
+            evidence=evidence,
+        ))
+    return rows
+
+
+def _candidate_name(source: Source) -> str:
+    text = " ".join([source.title, source.summary])
+    patterns = [
+        r"Redmi\s*K[0-9A-Za-z]+",
+        r"OnePlus\s*Ace\s*[0-9A-Za-z Pro+]*",
+        r"iPhone\s*[0-9A-Za-z Pro Max+]*",
+        r"Pixel\s*[0-9A-Za-z Pro+]*",
+        r"Galaxy\s*[A-Z0-9A-Za-z Ultra+]*",
+        r"小米\s*[0-9A-Za-z Pro Ultra+]*",
+        r"荣耀\s*[0-9A-Za-z Pro+]*",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return re.sub(r"\s+", " ", match.group(0)).strip()
+    return (source.title or source.creator or f"{source.platform} source")[:42]
+
+
+def _dimension_score(source: Source, terms: tuple[str, ...]) -> int:
+    text = _source_text(source).lower()
+    hits = sum(1 for term in terms if term.lower() in text)
+    positive = sum(1 for term in POSITIVE_TERMS if term.lower() in text)
+    risks = sum(1 for term in RISK_TERMS if term.lower() in text)
+    return max(1, min(5, 3 + min(1, hits) + min(1, positive) - min(1, risks and hits)))
+
+
+def _dimension_risk_score(source: Source) -> int:
+    text = _source_text(source).lower()
+    hits = sum(1 for term in RISK_TERMS if term.lower() in text)
+    return max(1, min(5, 2 + hits))
+
+
+def _aggregate_dimension_score(dimensions: list[ComparisonDimension], default: int) -> int:
+    scores = [dimension.score for dimension in dimensions if dimension.score]
+    if not scores:
+        return default
+    return max(1, min(5, round(sum(scores) / len(scores))))
+
+
+def _dimension_summary(source: Source, label: str, terms: tuple[str, ...], zh: bool) -> str:
+    text = _source_text(source)
+    matched = [term for term in terms if term.lower() in text.lower()]
+    if matched:
+        joined = "、".join(matched[:3]) if zh else ", ".join(matched[:3])
+        return f"{label}证据命中：{joined}；需打开来源核对具体测试场景。" if zh else f"{label} evidence matches: {joined}; open the source to verify the exact test scenario."
+    return f"{label}直接证据不足，暂按中性处理。" if zh else f"Direct {label} evidence is thin; treat as neutral for now."
+
+
+def _source_text(source: Source) -> str:
+    return " ".join([source.title, source.summary, source.transcriptPreview, getattr(source, "transcriptText", ""), *(c.text for c in source.comments[:8])])
+
+
+def _price_hint(source: Source, zh: bool) -> str:
+    text = _source_text(source)
+    match = re.search(r"([3-5][0-9]{3})", text)
+    if match:
+        return match.group(1)
+    return "需复核" if zh else "Verify"
+
+
+def _phone_candidate_sentence(name: str, evidence: list[int], zh: bool) -> str:
+    if zh:
+        return f"{name} 进入候选，因为至少有 {len(evidence)} 条来源提供标题、评论或字幕/正文证据。"
+    return f"{name} is a candidate because at least {len(evidence)} source(s) provide title, comment or transcript/content evidence."
+
+
+def _phone_caution(rows: list[ComparisonRow], risks: list[str], zh: bool) -> str:
+    if risks:
+        risk_text = "、".join(risks[:3]) if zh else ", ".join(risks[:3])
+        return f"涉及 {risk_text} 的机型和场景" if zh else f"phones/scenarios involving {risk_text}"
+    if len(rows) > 2:
+        return rows[-1].name
+    return "证据不足或测试场景不匹配的机型" if zh else "phones with thin evidence or mismatched test scenarios"
 
 
 def _coverage(sources: list[Source], run_logs: list[RunLog]) -> CoverageSummary:

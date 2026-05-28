@@ -43,6 +43,12 @@ class Comment(BaseModel):
     time: str = ""
 
 
+class TranscriptSegment(BaseModel):
+    text: str = ""
+    start: str | int | float | None = None
+    end: str | int | float | None = None
+
+
 class Source(BaseModel):
     id: int
     platform: PlatformId
@@ -59,6 +65,8 @@ class Source(BaseModel):
     metrics: dict[str, Any] = Field(default_factory=dict)
     comments: list[Comment] = Field(default_factory=list)
     transcriptPreview: str = ""
+    transcriptText: str = Field(default="", exclude=True)
+    transcriptSegments: list[TranscriptSegment] = Field(default_factory=list, exclude=True)
     evidenceChannels: list[str] = Field(default_factory=list)
     quality: dict[str, Any] = Field(default_factory=dict)
     provider: str = ""
@@ -94,6 +102,15 @@ class VideoQuote(BaseModel):
     duration: str = ""
 
 
+class ComparisonDimension(BaseModel):
+    key: str
+    label: str
+    score: int | None = Field(default=None, ge=1, le=5)
+    summary: str = ""
+    evidence: list[int] = Field(default_factory=list)
+    metrics: dict[str, Any] = Field(default_factory=dict)
+
+
 class ComparisonRow(BaseModel):
     name: str
     signal: str = ""
@@ -101,11 +118,12 @@ class ComparisonRow(BaseModel):
     risk: int = 3
     freshness: int = 3
     confidence: int = 3
-    camera: int = 4
-    lowLight: int = 4
-    video: int = 4
-    battery: int = 4
+    camera: int | None = None
+    lowLight: int | None = None
+    video: int | None = None
+    battery: int | None = None
     price: str = ""
+    dimensions: list[ComparisonDimension] = Field(default_factory=list)
     metrics: dict[str, Any] = Field(default_factory=dict)
     evidence: list[int] = Field(default_factory=list)
 

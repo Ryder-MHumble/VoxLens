@@ -275,6 +275,7 @@ def _source_from_crawler_row(
         item_id = first_nonempty(row.get("note_id"))
         comments = comments_by_id.get(item_id, [])[:comments_limit]
         title = strip_html(first_nonempty(row.get("title"), row.get("desc"), default="Untitled"))
+        note_text = strip_html(first_nonempty(row.get("desc"), row.get("title")))
         image_list = [item for item in first_nonempty(row.get("image_list")).split(",") if item]
         return Source(
             id=0,
@@ -284,7 +285,9 @@ def _source_from_crawler_row(
             url=first_nonempty(row.get("note_url"), default=f"https://www.xiaohongshu.com/explore/{item_id}" if item_id else ""),
             thumbnail=first_nonempty(row.get("cover_url"), image_list[0] if image_list else "", row.get("avatar"), default=THUMBS["xiaohongshu"][(idx - 1) % len(THUMBS["xiaohongshu"])]),
             published=first_nonempty(row.get("time"), row.get("last_update_time")),
-            summary=text_excerpt([first_nonempty(row.get("desc"), row.get("title")), *[c.text for c in comments[:4]]], 300),
+            summary=text_excerpt([note_text, *[c.text for c in comments[:4]]], 300),
+            transcriptPreview=text_excerpt([note_text], 420),
+            transcriptText=note_text,
             metrics={
                 "likes": row.get("liked_count"),
                 "comments": row.get("comment_count"),
@@ -313,6 +316,7 @@ def _source_from_crawler_row(
             published=first_nonempty(row.get("created_time"), row.get("updated_time")),
             summary=text_excerpt([first_nonempty(row.get("desc"), row.get("title")), content_text, *[c.text for c in comments[:4]]], 300),
             transcriptPreview=text_excerpt([content_text], 420),
+            transcriptText=content_text,
             metrics={
                 "upvotes": row.get("voteup_count"),
                 "comments": row.get("comment_count"),
@@ -361,6 +365,7 @@ def _source_from_crawler_row(
             published=first_nonempty(row.get("create_time"), row.get("publish_time")),
             summary=text_excerpt([text, *[c.text for c in comments[:4]]], 300),
             transcriptPreview=text_excerpt([text], 420),
+            transcriptText=text,
             metrics={
                 "likes": row.get("liked_count") or row.get("like_count"),
                 "comments": row.get("comment_count"),

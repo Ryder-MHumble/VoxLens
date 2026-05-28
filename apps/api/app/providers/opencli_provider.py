@@ -3,7 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
-from app.models import Comment, RunLog, Source
+from app.models import Comment, RunLog, Source, TranscriptSegment
 from app.utils import bvid_from_url, extract_first_json, first_nonempty, rows_from_payload, run_command, strip_html, text_excerpt
 
 
@@ -158,8 +158,7 @@ def _enrich_youtube(source: Source, comments_limit: int, include_transcripts: bo
         try:
             code, stdout, _, _ = run_command(_command("youtube", "transcript", source.url, "--mode", "grouped"), timeout=80)
             rows = rows_from_payload(extract_first_json(stdout)) if code == 0 else []
-            chunks = [first_nonempty(row.get("text"), row.get("content")) for row in rows[:6]]
-            source.transcriptPreview = text_excerpt(chunks, 420)
+            _apply_transcript_rows(source, rows)
         except Exception:
             pass
 
@@ -179,9 +178,30 @@ def _enrich_bilibili(source: Source, comments_limit: int, include_transcripts: b
         try:
             code, stdout, _, _ = run_command(_command("bilibili", "subtitle", bvid), timeout=80)
             rows = rows_from_payload(extract_first_json(stdout)) if code == 0 else []
-            source.transcriptPreview = text_excerpt([first_nonempty(r.get("content"), r.get("text")) for r in rows[:8]], 420)
+            _apply_transcript_rows(source, rows)
         except Exception:
             pass
+
+
+def _apply_transcript_rows(source: Source, rows: list[dict[str, Any]]) -> None:
+    segments = []
+    for row in rows:
+        text = strip_html(first_nonempty(row.get("text"), row.get("content"), row.get("caption"), row.get("sentence")))
+        if not text:
+            continue
+        segments.append(TranscriptSegment(
+            text=text,
+            start=row.get("start") or row.get("from") or row.get("begin"),
+            end=row.get("end") or row.get("to"),
+        ))
+    source.transcriptSegments = segments
+    source.transcriptText = text_excerpt([segment.text for segment in segments], _full_transcript_limit())
+    source.transcriptPreview = text_excerpt([source.transcriptText], 420)
+
+
+def _full_transcript_limit() -> int:
+    # Keep local source objects useful for synthesis while avoiding unbounded memory growth.
+    return 120_000
 
 
 def _enrich_many(sources: list[Source], enrich: Any, video_parallelism: int) -> None:

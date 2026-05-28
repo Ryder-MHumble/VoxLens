@@ -59,6 +59,15 @@ export type VideoQuote = {
   duration: string;
 };
 
+export type ComparisonDimension = {
+  key: string;
+  label: string;
+  score?: number | null;
+  summary?: string;
+  evidence: number[];
+  metrics?: Record<string, unknown>;
+};
+
 export type ComparisonRow = {
   name: string;
   signal?: string;
@@ -66,11 +75,12 @@ export type ComparisonRow = {
   risk?: number;
   freshness?: number;
   confidence?: number;
-  camera: number;
-  lowLight: number;
-  video: number;
-  battery: number;
+  camera?: number | null;
+  lowLight?: number | null;
+  video?: number | null;
+  battery?: number | null;
   price: string;
+  dimensions?: ComparisonDimension[];
   metrics?: Record<string, unknown>;
   evidence: number[];
 };
