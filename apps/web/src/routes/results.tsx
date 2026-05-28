@@ -12,7 +12,7 @@ import {
 import { z } from "zod";
 import { BrandMark } from "@/components/BrandMark";
 import { LangToggle } from "@/components/LangToggle";
-import { PLATFORMS } from "@/components/PlatformLogos";
+import { PlatformLogoImage, PLATFORMS } from "@/components/PlatformLogos";
 import { WebSearchIcon } from "@/components/WebSearchIcon";
 import {
   createResearchRun,
@@ -560,7 +560,7 @@ function Results() {
                     onClick={() => handleSourceFilterChange(f.id)}
                     className="source-filter-chip"
                   >
-                    {f.id !== "all" && <img src={platformLogo(f.id)} alt="" width={12} height={12} className="h-3 w-3" />}
+                    {f.id !== "all" && <PlatformLogoImage platform={f.id} size={14} />}
                     <span>{f.name}</span>
                   </button>
                 );
@@ -670,7 +670,7 @@ function ReportExportSheet({ report, title }: { report: ResearchReport; title: s
         <div className="mt-8 flex flex-wrap items-center gap-2 border-y border-[#ebe3f2] py-4">
           {activePlatforms.map((platform) => (
             <span key={platform.id} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#332b44] ring-1 ring-[#eadff2]">
-              <img src={exportPlatformLogo(platform.id)} alt="" width={16} height={16} className="h-4 w-4 object-contain" />
+              <PlatformLogoImage platform={platform.id} size={18} />
               {platform.name}
               <span className="text-[#8a7a99]">{platform.count}</span>
             </span>
@@ -763,7 +763,7 @@ function ReportExportSheet({ report, title }: { report: ResearchReport; title: s
                       className="h-full w-full object-cover"
                     />
                     <span className="absolute left-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/88 shadow-sm ring-1 ring-black/5">
-                      <img src={exportPlatformLogo(source.platform)} alt="" width={20} height={20} className="h-5 w-5 object-contain" />
+                      <PlatformLogoImage platform={source.platform} size={20} />
                     </span>
                   </div>
                   <div className="p-4">
@@ -858,23 +858,6 @@ function selectExportSources(sources: Source[]) {
 
 function exportSourceCover(source: Source) {
   return source.thumbnail?.trim() || fallbackThumb(source.platform);
-}
-
-function exportPlatformLogo(platform?: string) {
-  const svgByPlatform: Record<string, string> = {
-    bilibili: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#23ADE5"/><path d="M10 10 7 6M22 10l3-4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><rect x="7" y="11" width="18" height="13" rx="4" fill="#fff"/><circle cx="13" cy="17" r="1.8" fill="#23ADE5"/><circle cx="19" cy="17" r="1.8" fill="#23ADE5"/><path d="M13 21h6" stroke="#23ADE5" stroke-width="2" stroke-linecap="round"/></svg>`,
-    douyin: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#080808"/><path d="M19 7c.6 4 2.7 6.3 6.2 7.1v4.2c-2.4-.1-4.5-.9-6.2-2.2v5.5c0 4-2.9 6.7-6.8 6.7-3.5 0-6.2-2.4-6.2-5.7 0-3.6 3.1-6 7.5-5.6v4.3c-1.8-.4-3.1.2-3.1 1.5 0 1.1.9 1.8 2 1.8 1.4 0 2.3-.9 2.3-2.7V7h4.3z" fill="#fff"/><path d="M19 7c.4 2.2 1.3 4 2.8 5.2" stroke="#25F4EE" stroke-width="2.4" stroke-linecap="round"/><path d="M12.3 24.5c-1.2 0-2-.7-2-1.8" stroke="#FE2C55" stroke-width="2.4" stroke-linecap="round"/></svg>`,
-    youtube: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#fff"/><rect x="5" y="9" width="22" height="14" rx="4" fill="#FF0033"/><path d="m14 13 7 3-7 3v-6z" fill="#fff"/></svg>`,
-    xiaohongshu: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#FF2442"/><text x="16" y="14" text-anchor="middle" font-size="7" font-family="Arial, sans-serif" font-weight="700" fill="#fff">小红</text><text x="16" y="23" text-anchor="middle" font-size="7" font-family="Arial, sans-serif" font-weight="700" fill="#fff">书</text></svg>`,
-    zhihu: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#1772F6"/><path d="M8 8h10v3h-4.4c-.2 1-.4 1.9-.7 2.7H18v3h-4.6c1.2 1.7 2.7 3.4 4.8 5.1l-2.1 2.6c-1.8-1.6-3.2-3.2-4.3-4.9-1.2 2.3-2.7 4.1-4.5 5.5L5.2 22c2.3-1.8 4-3.5 4.9-5.4H6v-3h4.9c.3-.9.5-1.8.7-2.7H8V8zm12 1h6v15h-3V12h-3V9z" fill="#fff"/></svg>`,
-    kuaishou: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#FF5F00"/><rect x="7" y="12" width="18" height="12" rx="4" fill="#fff"/><circle cx="12" cy="9" r="3" fill="#fff"/><circle cx="20" cy="9" r="3" fill="#fff"/><circle cx="14" cy="18" r="2.2" fill="#FF5F00"/><circle cx="20" cy="18" r="2.2" fill="#FF5F00"/></svg>`,
-    weibo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#fff"/><path d="M22.8 11.3c3.2 1.2 5 3.4 4.6 5.9-.6 3.8-5.8 6.6-11.7 6.2-5.7-.4-10-3.6-9.5-7.2.3-2.3 2.4-4.2 5.3-5.3 1.9-.7 2.7.5 2 1.8-.4.8.2 1.1 1 .6 2.9-1.8 6.1-2.6 8.3-2z" fill="#E6162D"/><ellipse cx="15.7" cy="17.6" rx="6.2" ry="4.2" fill="#fff"/><ellipse cx="14.3" cy="17.8" rx="2.2" ry="1.7" fill="#111"/><circle cx="13.5" cy="17.1" r=".7" fill="#fff"/><path d="M23.3 7.5c2.4.2 4.3 2 4.7 4.4M22.2 10c1.4.1 2.5 1.1 2.7 2.5" stroke="#FFB000" stroke-width="2" stroke-linecap="round"/></svg>`,
-  };
-  return svgDataUri(svgByPlatform[platform || ""] || `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#8c63ff"/><circle cx="16" cy="16" r="7" fill="#fff"/></svg>`);
-}
-
-function svgDataUri(svg: string) {
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 function CitationList({ ids, onHover }: { ids: Array<number | string>; onHover?: (sourceId: number | string | null) => void }) {
@@ -1004,17 +987,11 @@ function PlatformLogoStrip({
               title={`${platform.name} · ${platform.count} ${videoLabel}`}
               aria-label={`${platform.name}, ${platform.count} ${videoLabel}`}
               onClick={() => onSelect(platform.id)}
-              className={`group relative grid h-8 w-8 place-items-center rounded-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white/70 hover:opacity-100 ${
+              className={`group relative grid h-9 w-9 place-items-center rounded-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white/70 hover:opacity-100 ${
                 hasSources ? "opacity-95" : "opacity-35 grayscale"
               }`}
             >
-              <img
-                src={platformLogo(platform.id)}
-                alt=""
-                width={20}
-                height={20}
-                className="h-5 w-5 object-contain"
-              />
+              <PlatformLogoImage platform={platform.id} size={22} />
             </button>
           );
         })}
@@ -1157,7 +1134,7 @@ function ProviderActivityList({
             title={item.message}
             className="inline-grid h-5 w-5 place-items-center rounded-full bg-white/65 opacity-45 grayscale ring-1 ring-black/5"
           >
-            <img src={platformLogo(item.platform)} alt={item.platform} width={14} height={14} className="h-3.5 w-3.5 object-contain" />
+            <PlatformLogoImage platform={item.platform} size={14} alt={item.platform} />
           </span>
         ))}
         {activities.slice(0, 8).map((item) => (
@@ -1324,7 +1301,6 @@ function ComparisonTable({
 }
 
 function SourceItem({ source, highlighted }: { source: Source; highlighted?: boolean }) {
-  const logo = platformLogo(source.platform);
   const teaser = sourceTeaser(source);
   return (
     <li
@@ -1350,7 +1326,7 @@ function SourceItem({ source, highlighted }: { source: Source; highlighted?: boo
           #{source.id} {source.title} {source.url && <ExternalLink className="ml-1 inline h-3 w-3" />}
         </a>
         <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <img src={logo} alt="" width={10} height={10} className="h-2.5 w-2.5" />
+          <PlatformLogoImage platform={source.platform} size={11} />
           <span>{source.creator || source.platform}</span>
         </div>
         {teaser && (
@@ -1409,7 +1385,7 @@ function SourceCover({ source }: { source: Source }) {
         onError={() => setFailed(true)}
       />
       <span className="source-cover-badge" aria-hidden="true">
-        <img src={exportPlatformLogo(source.platform)} alt="" width={16} height={16} className="h-4 w-4 object-contain" />
+        <PlatformLogoImage platform={source.platform} size={18} />
       </span>
     </>
   );
@@ -1425,7 +1401,7 @@ function normalizeThumbnailUrl(value?: string) {
 function GeneratedSourceCover({ source }: { source: Source }) {
   return (
     <div className="generated-source-cover h-full w-full">
-      <img src={exportPlatformLogo(source.platform)} alt="" width={24} height={24} className="h-6 w-6 object-contain" />
+      <PlatformLogoImage platform={source.platform} size={28} />
       <span className="source-cover-platform">{platformName(source.platform)}</span>
       <span className="source-cover-title">{source.title}</span>
     </div>
@@ -1466,10 +1442,6 @@ function Stars({ n }: { n: number }) {
       ))}
     </span>
   );
-}
-
-function platformLogo(platform?: string) {
-  return exportPlatformLogo(platform);
 }
 
 function fallbackThumb(platform?: string) {

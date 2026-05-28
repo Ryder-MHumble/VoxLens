@@ -577,13 +577,19 @@
 .source-cover-image {
   display: block;
 }
+.platform-logo-image {
+  display: block;
+  flex: 0 0 auto;
+  max-width: none;
+  object-fit: contain;
+}
 .source-cover-badge {
   position: absolute;
   left: 6px;
   top: 6px;
   display: grid;
-  height: 22px;
-  width: 22px;
+  height: 24px;
+  width: 30px;
   place-items: center;
   border-radius: 8px;
   background: color-mix(in oklab, white 78%, transparent);
