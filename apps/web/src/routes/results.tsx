@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import {
-  CheckCircle2,
   Download,
   ExternalLink,
   Play,
@@ -473,28 +472,11 @@ function Results() {
             <div className="glass rounded-2xl p-5" style={{ boxShadow: "var(--shadow-glass)" }}>
               <ProgressPanel report={report} events={streamEvents} streaming={isWorking} progress={progress} />
 
-              <div className="flex flex-wrap items-center justify-around gap-4">
-                {report.platforms.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setActiveFilter(p.id)}
-                    className="flex flex-col items-center gap-1.5 rounded-2xl px-4 py-2 transition hover:bg-white/45"
-                  >
-                    <img
-                      src={p.logo || platformLogo(p.id)}
-                      alt={p.name}
-                      width={36}
-                      height={36}
-                      className="h-9 w-9 rounded-xl bg-white/80 p-2 shadow-sm ring-1 ring-black/5"
-                    />
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="font-medium">{p.count} {t("videos")}</span>
-                      <CheckCircle2 className="h-3 w-3" style={{ color: "var(--violet)" }} />
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <PlatformLogoStrip
+                platforms={report.platforms}
+                onSelect={setActiveFilter}
+                videoLabel={t("videos")}
+              />
 
               <InsightStrip report={report} onCitationHover={handleCitationHover} />
 
@@ -713,6 +695,46 @@ function MetricPill({ label, value }: { label: string; value?: number }) {
     <div className="rounded-xl bg-white/55 px-2.5 py-2 ring-1 ring-white/60">
       <div className="text-[10px] text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm font-semibold">{value ?? 0}</div>
+    </div>
+  );
+}
+
+function PlatformLogoStrip({
+  platforms,
+  onSelect,
+  videoLabel,
+}: {
+  platforms: ResearchReport["platforms"];
+  onSelect: (platform: PlatformId) => void;
+  videoLabel: string;
+}) {
+  return (
+    <div className="mb-5 flex items-center justify-center">
+      <div className="flex items-center gap-5 border-y border-white/45 px-5 py-3">
+        {platforms.map((platform) => {
+          const hasSources = platform.count > 0;
+          return (
+            <button
+              key={platform.id}
+              type="button"
+              title={`${platform.name} · ${platform.count} ${videoLabel}`}
+              aria-label={`${platform.name}, ${platform.count} ${videoLabel}`}
+              onClick={() => onSelect(platform.id)}
+              className={`group relative grid h-7 w-7 place-items-center transition duration-200 hover:-translate-y-0.5 hover:opacity-100 ${
+                hasSources ? "opacity-95" : "opacity-35 grayscale"
+              }`}
+            >
+              <img
+                src={platform.logo || platformLogo(platform.id)}
+                alt=""
+                width={20}
+                height={20}
+                className="h-5 w-5 object-contain"
+              />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -980,6 +1002,7 @@ function ComparisonTable({
 
 function SourceItem({ source, highlighted }: { source: Source; highlighted?: boolean }) {
   const logo = platformLogo(source.platform);
+  const teaser = sourceTeaser(source);
   return (
     <li
       data-source-id={String(source.id)}
@@ -1007,9 +1030,11 @@ function SourceItem({ source, highlighted }: { source: Source; highlighted?: boo
           <img src={logo} alt="" width={10} height={10} className="h-2.5 w-2.5" />
           <span>{source.creator || source.platform}</span>
         </div>
-        <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
-          {source.summary || source.transcriptPreview}
-        </p>
+        {teaser && (
+          <p className="mt-1 line-clamp-1 text-[10px] leading-snug text-muted-foreground">
+            {teaser}
+          </p>
+        )}
         <div className="mt-2 flex flex-wrap gap-1">
           {(source.badges ?? []).slice(0, 3).map((badge) => (
             <span key={badge} className="rounded-full bg-white/65 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground ring-1 ring-black/5">
@@ -1030,6 +1055,14 @@ function SourceItem({ source, highlighted }: { source: Source; highlighted?: boo
       </div>
     </li>
   );
+}
+
+function sourceTeaser(source: Source) {
+  const rawText = source.summary || source.whyRelevant || source.transcriptPreview || source.highlights?.[0] || "";
+  const text = rawText.replace(/\s+/g, " ").trim();
+  const maxLength = 82;
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).replace(/[\s,.;:!?]+$/u, "")}...`;
 }
 
 function Stars({ n }: { n: number }) {
