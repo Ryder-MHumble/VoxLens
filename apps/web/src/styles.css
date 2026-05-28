@@ -547,11 +547,12 @@
 .source-card[data-highlighted="true"]::after {
   opacity: 1;
 }
-.source-card[data-highlighted="true"] img {
+.source-card[data-highlighted="true"] .source-cover-frame {
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--violet) 24%, transparent);
 }
 .source-title,
 .source-teaser,
+.source-cover-title,
 .insight-slide-copy {
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -563,8 +564,72 @@
 .source-teaser {
   -webkit-line-clamp: 1;
 }
+.source-cover-title {
+  -webkit-line-clamp: 2;
+}
 .insight-slide-copy {
   -webkit-line-clamp: 5;
+}
+
+.source-cover-frame {
+  background: color-mix(in oklab, var(--foreground) 5%, white 55%);
+}
+.source-cover-image {
+  display: block;
+}
+.source-cover-badge {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  display: grid;
+  height: 22px;
+  width: 22px;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in oklab, white 78%, transparent);
+  box-shadow:
+    0 8px 18px -12px color-mix(in oklab, black 46%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 82%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.generated-source-cover {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 9px;
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in oklab, white 72%, transparent), transparent 28%),
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--violet) 32%, white 50%),
+      color-mix(in oklab, var(--indigo) 26%, white 56%));
+}
+.generated-source-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, transparent 18%, color-mix(in oklab, black 20%, transparent));
+}
+.generated-source-cover > * {
+  position: relative;
+  z-index: 1;
+}
+.source-cover-platform {
+  color: color-mix(in oklab, white 88%, transparent);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.source-cover-title {
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-shadow: 0 1px 10px color-mix(in oklab, black 28%, transparent);
 }
 
 .platform-logo-strip {
@@ -596,6 +661,32 @@
 
 .carousel-shell {
   position: relative;
+}
+.carousel-shell::before,
+.carousel-shell::after {
+  content: "";
+  position: absolute;
+  bottom: 8px;
+  top: 0;
+  z-index: 1;
+  width: 56px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.carousel-shell::before {
+  left: 0;
+  background: linear-gradient(90deg, color-mix(in oklab, white 72%, transparent), transparent);
+}
+.carousel-shell::after {
+  right: 0;
+  background: linear-gradient(270deg, color-mix(in oklab, white 72%, transparent), transparent);
+}
+.carousel-shell:hover::before,
+.carousel-shell:hover::after,
+.carousel-shell:focus-within::before,
+.carousel-shell:focus-within::after {
+  opacity: 1;
 }
 .core-carousel {
   display: flex;
@@ -650,23 +741,59 @@
   pointer-events: none;
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  opacity: 0;
   padding: 0 6px;
+  transform: translateY(2px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 .carousel-controls .carousel-nudge {
-  pointer-events: auto;
-  height: 28px;
-  width: 28px;
-  background: color-mix(in oklab, white 84%, transparent);
+  pointer-events: none;
+  height: 42px;
+  width: 40px;
+  border: 1px solid color-mix(in oklab, white 42%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--foreground) 76%, var(--violet) 14%),
+      color-mix(in oklab, var(--indigo) 72%, black 10%));
+  color: white;
+  font-size: 26px;
+  backdrop-filter: blur(14px);
   box-shadow:
-    0 10px 28px -18px color-mix(in oklab, black 30%, transparent),
-    inset 0 1px 0 color-mix(in oklab, white 82%, transparent);
+    0 18px 42px -20px color-mix(in oklab, var(--indigo) 62%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 32%, transparent);
+}
+.carousel-controls .carousel-nudge:first-child {
+  transform: translateX(-10px);
+}
+.carousel-controls .carousel-nudge:last-child {
+  transform: translateX(10px);
+}
+.carousel-shell:hover .carousel-controls,
+.carousel-shell:focus-within .carousel-controls {
+  opacity: 1;
+  transform: translateY(0);
+}
+.carousel-shell:hover .carousel-controls .carousel-nudge,
+.carousel-shell:focus-within .carousel-controls .carousel-nudge {
+  pointer-events: auto;
 }
 .carousel-nudge:hover {
-  background: color-mix(in oklab, white 86%, transparent);
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--violet) 82%, black 8%),
+      color-mix(in oklab, var(--indigo) 84%, black 6%));
   transform: translateY(-1px);
+}
+.carousel-controls .carousel-nudge:first-child:hover {
+  transform: translateX(-10px) translateY(-1px);
+}
+.carousel-controls .carousel-nudge:last-child:hover {
+  transform: translateX(10px) translateY(-1px);
 }
 
 .sources-panel {

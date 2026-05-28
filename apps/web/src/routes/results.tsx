@@ -560,7 +560,7 @@ function Results() {
                     onClick={() => handleSourceFilterChange(f.id)}
                     className="source-filter-chip"
                   >
-                    {f.logo && <img src={f.logo} alt="" width={12} height={12} className="h-3 w-3" />}
+                    {f.id !== "all" && <img src={platformLogo(f.id)} alt="" width={12} height={12} className="h-3 w-3" />}
                     <span>{f.name}</span>
                   </button>
                 );
@@ -1009,7 +1009,7 @@ function PlatformLogoStrip({
               }`}
             >
               <img
-                src={platform.logo || platformLogo(platform.id)}
+                src={platformLogo(platform.id)}
                 alt=""
                 width={20}
                 height={20}
@@ -1332,8 +1332,8 @@ function SourceItem({ source, highlighted }: { source: Source; highlighted?: boo
       data-highlighted={highlighted ? "true" : "false"}
       className="source-card group grid grid-cols-[86px_minmax(0,1fr)] gap-3 rounded-2xl p-2.5 transition hover:bg-white/60"
     >
-      <div className="relative h-16 w-[86px] shrink-0 overflow-hidden rounded-xl">
-        <img src={source.thumbnail || fallbackThumb(source.platform)} alt="" className="h-full w-full object-cover" loading="lazy" />
+      <div className="source-cover-frame relative h-16 w-[86px] shrink-0 overflow-hidden rounded-xl">
+        <SourceCover source={source} />
         {source.duration && (
           <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 py-0.5 text-[9px] font-medium text-white">
             {source.duration}
@@ -1380,6 +1380,58 @@ function SourceItem({ source, highlighted }: { source: Source; highlighted?: boo
   );
 }
 
+function SourceCover({ source }: { source: Source }) {
+  const [failed, setFailed] = useState(false);
+  const thumbnail = normalizeThumbnailUrl(source.thumbnail);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [source.id, thumbnail]);
+
+  if (!thumbnail || failed) {
+    return <GeneratedSourceCover source={source} />;
+  }
+
+  return (
+    <>
+      <img
+        src={thumbnail}
+        alt=""
+        className="source-cover-image h-full w-full object-cover"
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onLoad={(event) => {
+          if (!event.currentTarget.naturalWidth || !event.currentTarget.naturalHeight) {
+            setFailed(true);
+          }
+        }}
+        onError={() => setFailed(true)}
+      />
+      <span className="source-cover-badge" aria-hidden="true">
+        <img src={exportPlatformLogo(source.platform)} alt="" width={16} height={16} className="h-4 w-4 object-contain" />
+      </span>
+    </>
+  );
+}
+
+function normalizeThumbnailUrl(value?: string) {
+  const thumbnail = value?.trim();
+  if (!thumbnail) return "";
+  if (thumbnail.startsWith("//")) return `https:${thumbnail}`;
+  return thumbnail;
+}
+
+function GeneratedSourceCover({ source }: { source: Source }) {
+  return (
+    <div className="generated-source-cover h-full w-full">
+      <img src={exportPlatformLogo(source.platform)} alt="" width={24} height={24} className="h-6 w-6 object-contain" />
+      <span className="source-cover-platform">{platformName(source.platform)}</span>
+      <span className="source-cover-title">{source.title}</span>
+    </div>
+  );
+}
+
 function sourceTeaser(source: Source) {
   const rawText = source.summary || source.whyRelevant || source.transcriptPreview || source.highlights?.[0] || "";
   const text = rawText.replace(/\s+/g, " ").trim();
@@ -1417,7 +1469,7 @@ function Stars({ n }: { n: number }) {
 }
 
 function platformLogo(platform?: string) {
-  return PLATFORMS.find((p) => p.id === platform)?.logo || "https://www.youtube.com/favicon.ico";
+  return exportPlatformLogo(platform);
 }
 
 function fallbackThumb(platform?: string) {
