@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
+import { toPng } from "html-to-image";
 import {
   Download,
   ExternalLink,
   Play,
   RefreshCw,
-  Share2,
   Sparkles,
 } from "lucide-react";
 import { z } from "zod";
@@ -53,6 +53,7 @@ function Results() {
   const { q, live, run } = Route.useSearch();
   const containerRef = useRef<HTMLDivElement>(null);
   const middleScrollRef = useRef<HTMLElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [activeFilter, setActiveFilter] = useState<"all" | PlatformId>("all");
   const [activeOutline, setActiveOutline] = useState<number>(0);
@@ -62,6 +63,7 @@ function Results() {
   const [streaming, setStreaming] = useState(false);
   const [progress, setProgress] = useState(0);
   const [streamEvents, setStreamEvents] = useState<ResearchStreamEvent[]>([]);
+  const [exportingImage, setExportingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleStreamEvent = useCallback(
@@ -197,7 +199,7 @@ function Results() {
             useLiveProviders: true,
             useCrawlerRuntime: shouldUseCrawlerRuntime,
             providerMode: "local" as const,
-            authMode: "auto",
+            authMode: "auto" as const,
             includeTranscripts: true,
             minLiveSources: 3,
             lang,
@@ -331,20 +333,27 @@ function Results() {
     setHighlightedSourceId(sourceId == null ? null : String(sourceId));
   };
 
-  const exportJson = () => {
-    if (!report || typeof window === "undefined") return;
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `voxlens-report-${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const shareUrl = async () => {
-    if (typeof window === "undefined") return;
-    await navigator.clipboard?.writeText(window.location.href);
+  const exportReportImage = async () => {
+    if (!report || typeof window === "undefined" || !exportRef.current) return;
+    setExportingImage(true);
+    try {
+      await document.fonts?.ready;
+      const node = exportRef.current;
+      const pixelRatio = node.offsetHeight > 9000 ? 1.15 : 1.55;
+      const dataUrl = await toPng(node, {
+        backgroundColor: "#fbf7ff",
+        cacheBust: true,
+        imagePlaceholder: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
+        pixelRatio,
+        skipFonts: true,
+      });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `${imageFileName(report.title || title)}.png`;
+      link.click();
+    } finally {
+      setExportingImage(false);
+    }
   };
 
   return (
@@ -368,17 +377,12 @@ function Results() {
           </button>
           <button
             type="button"
-            onClick={() => void shareUrl()}
-            className="glass grid h-9 w-9 place-items-center rounded-full transition hover:-translate-y-0.5"
+            onClick={() => void exportReportImage()}
+            disabled={!report || exportingImage}
+            aria-label="download report image"
+            className="glass grid h-9 w-9 place-items-center rounded-full transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60"
           >
-            <Share2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={exportJson}
-            className="glass grid h-9 w-9 place-items-center rounded-full transition hover:-translate-y-0.5"
-          >
-            <Download className="h-4 w-4" />
+            <Download className={`h-4 w-4 ${exportingImage ? "animate-bounce" : ""}`} />
           </button>
         </div>
       </header>
@@ -525,15 +529,19 @@ function Results() {
             </article>
           </section>
 
-          <aside data-rise data-lenis-prevent className="scroll-col space-y-3 lg:self-start">
-            <div className="flex items-center justify-between px-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                {t("sources")} / {report.sources.length}
-              </p>
-            </div>
+          <aside data-rise data-lenis-prevent className="sources-panel lg:self-start">
+            <div className="sources-panel-head">
+              <div className="flex items-center justify-between px-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {t("sources")} / {report.sources.length}
+                </p>
+                <span className="rounded-full bg-white/65 px-2.5 py-1 text-[10px] font-medium text-muted-foreground ring-1 ring-white/70">
+                  {filteredSources.length}
+                </span>
+              </div>
 
-            <div className="tabs-row overflow-x-auto pl-1 pr-1">
-              {[{ id: "all" as const, name: t("all"), logo: "" }, ...PLATFORMS].map((f) => {
+              <div className="sources-filter-row">
+                {[{ id: "all" as const, name: t("all"), logo: "" }, ...PLATFORMS].map((f) => {
                 const active = activeFilter === f.id;
                 return (
                   <button
@@ -541,16 +549,17 @@ function Results() {
                     data-active={active}
                     type="button"
                     onClick={() => setActiveFilter(f.id)}
-                    className="chrome-tab whitespace-nowrap"
+                    className="source-filter-chip"
                   >
                     {f.logo && <img src={f.logo} alt="" width={12} height={12} className="h-3 w-3" />}
                     <span>{f.name}</span>
                   </button>
                 );
-              })}
+                })}
+              </div>
             </div>
 
-            <div className="glass -mt-px rounded-2xl rounded-tl-md p-3" style={{ boxShadow: "var(--shadow-glass)" }}>
+            <div className="sources-list glass rounded-2xl p-3" style={{ boxShadow: "var(--shadow-glass)" }}>
               {filteredSources.length === 0 ? (
                 <p className="p-4 text-sm text-muted-foreground">{t("empty")}</p>
               ) : (
@@ -595,8 +604,222 @@ function Results() {
       </div>
 
       <div className="sr-only">{lang}</div>
+      {report && (
+        <div className="fixed left-[-10000px] top-0 w-[1120px] overflow-visible" aria-hidden="true">
+          <div ref={exportRef}>
+            <ReportExportSheet report={report} title={title} />
+          </div>
+        </div>
+      )}
       <Link to="/" className="hidden">home</Link>
     </div>
+  );
+}
+
+function ReportExportSheet({ report, title }: { report: ResearchReport; title: string }) {
+  const activePlatforms = report.platforms.filter((platform) => platform.count > 0);
+  const insights = report.insights ?? [];
+  const generatedAt = formatReportDate(report.generatedAt, report.lang);
+  return (
+    <div className="w-[1120px] overflow-hidden rounded-[36px] bg-[#fbf7ff] p-12 text-[#1f1930] shadow-[0_28px_100px_-46px_rgba(126,93,255,0.5)]">
+      <div className="rounded-[30px] border border-white/75 bg-white/70 p-9 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+        <div className="flex items-start justify-between gap-8">
+          <div className="flex items-center gap-4">
+            <span className="grid h-16 w-16 place-items-center rounded-[24px] bg-white shadow-[0_18px_45px_-28px_rgba(121,91,255,0.9)] ring-1 ring-black/5">
+              <img src="/brand/voxlens-mark.svg" alt="" width={56} height={56} className="h-14 w-14" />
+            </span>
+            <div>
+              <p className="text-2xl font-bold tracking-tight">{report.productName || "VoxLens"}</p>
+              <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[#7f7595]">
+                {report.slogan || (report.lang === "zh" ? "研究，不止文字" : "Research beyond text")}
+              </p>
+            </div>
+          </div>
+          <div className="text-right text-xs leading-relaxed text-[#7f7595]">
+            <p>{generatedAt}</p>
+            <p className="mt-1 font-semibold text-[#1f1930]">{report.status}</p>
+          </div>
+        </div>
+
+        <div className="mt-10 grid grid-cols-[1fr_280px] gap-8">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a7a99]">Research Report</p>
+            <h1 className="mt-3 font-display text-5xl font-normal italic leading-[0.98] tracking-tight text-[#151020]">
+              {title}
+            </h1>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <ExportMetric label="Sources" value={report.totalVideos || report.sources.length} />
+            <ExportMetric label="Comments" value={report.totalComments} />
+            <ExportMetric label="Platforms" value={activePlatforms.length} />
+            <ExportMetric label="Cited" value={report.coverage?.citedSources ?? report.sources.filter((source) => (source.citationCount ?? 0) > 0).length} />
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center gap-2 border-y border-[#ebe3f2] py-4">
+          {activePlatforms.map((platform) => (
+            <span key={platform.id} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#332b44] ring-1 ring-[#eadff2]">
+              <span className="grid h-4 w-4 place-items-center rounded-full bg-[#f2edf8] text-[9px] font-bold text-[#8c63ff]">
+                {platform.name.slice(0, 1)}
+              </span>
+              {platform.name}
+              <span className="text-[#8a7a99]">{platform.count}</span>
+            </span>
+          ))}
+        </div>
+
+        {report.takeaways.length > 0 && (
+          <div className="mt-9 rounded-[24px] bg-[#f2edf8] p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7f7595]">Key Takeaways</p>
+            <div className="mt-4 grid gap-3">
+              {report.takeaways.map((item, index) => (
+                <p key={`${item.text}-${index}`} className="text-[15px] leading-relaxed text-[#342b44]">
+                  <span className="mr-2 font-semibold text-[#8c63ff]">{String(index + 1).padStart(2, "0")}</span>
+                  {item.text} <ExportCitations ids={item.citations} />
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {insights.length > 0 && (
+          <div className="mt-7 grid grid-cols-3 gap-4">
+            {insights.slice(0, 3).map((insight) => (
+              <div key={insight.id} className="rounded-[22px] bg-white/80 p-5 ring-1 ring-[#eadff2]">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a7a99]">{insight.kind || "insight"}</p>
+                  <span className="rounded-full bg-[#f2edf8] px-2 py-0.5 text-[10px] font-bold">{insight.confidence ?? 3}/5</span>
+                </div>
+                <p className="mt-3 text-base font-bold leading-snug">{insight.label}</p>
+                {insight.summary && (
+                  <p className="mt-2 text-xs leading-relaxed text-[#625772]">
+                    {insight.summary} <ExportCitations ids={insight.sourceIds ?? []} />
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-10 space-y-8">
+          {report.sections.map((section, index) => (
+            <section key={section.id} className="rounded-[26px] bg-white/78 p-7 ring-1 ring-[#eadff2]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a7a99]">
+                Section {String(index + 1).padStart(2, "0")}
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight">{section.title}</h2>
+              {section.body && <p className="mt-4 text-[15px] leading-relaxed text-[#3a304c]">{section.body}</p>}
+              {section.bullets.length > 0 && (
+                <div className="mt-4 grid gap-2">
+                  {section.bullets.map((item, bulletIndex) => (
+                    <p key={`${section.id}-${bulletIndex}`} className="text-sm leading-relaxed text-[#3a304c]">
+                      <span className="mr-2 text-[#8c63ff]">•</span>
+                      {item.text} <ExportCitations ids={item.citations} />
+                    </p>
+                  ))}
+                </div>
+              )}
+              {section.quote && (
+                <div className="mt-5 rounded-2xl bg-[#f2edf8] p-5">
+                  <p className="text-base italic leading-relaxed text-[#2a2139]">"{section.quote.quote}"</p>
+                  <p className="mt-2 text-xs font-semibold text-[#7f7595]">{section.quote.author}</p>
+                </div>
+              )}
+              {section.table.length > 0 && <ExportComparisonTable rows={section.table} />}
+            </section>
+          ))}
+        </div>
+
+        {report.sources.length > 0 && (
+          <div className="mt-10">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a7a99]">Evidence Sources</p>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight">{report.sources.length} collected items</h2>
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-4">
+              {report.sources.map((source) => (
+                <div key={`${source.platform}-${source.id}-${source.url}`} className="rounded-[20px] bg-white/82 p-4 ring-1 ring-[#eadff2]">
+                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a7a99]">
+                    <span>#{source.id}</span>
+                    <span>{platformName(source.platform)}</span>
+                    {source.provider && <span>{source.provider}</span>}
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-sm font-bold leading-snug text-[#21182e]">{source.title}</p>
+                  <p className="mt-1 text-xs text-[#6d617d]">{source.creator || source.author || source.platform}</p>
+                  {sourceTeaser(source) && <p className="mt-2 text-xs leading-relaxed text-[#625772]">{sourceTeaser(source)}</p>}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {(source.badges ?? []).slice(0, 3).map((badge) => (
+                      <span key={badge} className="rounded-full bg-[#f4eef9] px-2 py-0.5 text-[10px] font-semibold text-[#6d617d]">
+                        {badge}
+                      </span>
+                    ))}
+                    {Boolean(source.citationCount) && (
+                      <span className="rounded-full bg-[#8c63ff] px-2 py-0.5 text-[10px] font-bold text-white">
+                        cited x{source.citationCount}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-10 flex items-center justify-between border-t border-[#ebe3f2] pt-6 text-xs text-[#8a7a99]">
+          <span>{report.productName || "VoxLens"} · {report.slogan || "Research beyond text"}</span>
+          <span>{report.runId || "local-report"}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExportMetric({ label, value }: { label: string; value?: number }) {
+  return (
+    <div className="rounded-[18px] bg-white px-4 py-3 ring-1 ring-[#eadff2]">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a7a99]">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-[#171020]">{value ?? 0}</p>
+    </div>
+  );
+}
+
+function ExportCitations({ ids }: { ids: Array<number | string> }) {
+  if (!ids.length) return null;
+  return (
+    <span className="ml-1 inline-flex gap-1 align-baseline text-[10px] font-bold text-[#8c63ff]">
+      {ids.slice(0, 6).map((id) => <span key={id}>[{id}]</span>)}
+    </span>
+  );
+}
+
+function ExportComparisonTable({ rows }: { rows: ResearchReport["sections"][number]["table"] }) {
+  return (
+    <table className="mt-5 w-full overflow-hidden rounded-2xl text-left text-xs">
+      <thead className="bg-[#f2edf8] text-[10px] uppercase tracking-[0.14em] text-[#7f7595]">
+        <tr>
+          <th className="px-3 py-2 font-semibold">Signal</th>
+          <th className="px-3 py-2 font-semibold">Support</th>
+          <th className="px-3 py-2 font-semibold">Risk</th>
+          <th className="px-3 py-2 font-semibold">Freshness</th>
+          <th className="px-3 py-2 font-semibold">Confidence</th>
+          <th className="px-3 py-2 font-semibold">Evidence</th>
+        </tr>
+      </thead>
+      <tbody className="bg-white/70">
+        {rows.map((row) => (
+          <tr key={row.name} className="border-t border-[#eadff2]">
+            <td className="px-3 py-3 font-semibold text-[#21182e]">{row.name}</td>
+            <td className="px-3 py-3"><Stars n={row.support ?? row.lowLight} /></td>
+            <td className="px-3 py-3"><Stars n={row.risk ?? Math.max(1, 6 - row.video)} /></td>
+            <td className="px-3 py-3"><Stars n={row.freshness ?? row.battery} /></td>
+            <td className="px-3 py-3"><Stars n={row.confidence ?? row.camera} /></td>
+            <td className="px-3 py-3"><ExportCitations ids={row.evidence} /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -638,34 +861,33 @@ function InsightStrip({
   const insights = report.insights ?? [];
   const coverage = report.coverage;
   const quality = report.quality;
+  const cardCount = Math.min(insights.length, 6) + (coverage ? 1 : 0);
+  const railRef = useAutoCarousel<HTMLDivElement>(cardCount, 4200);
   if (!insights.length && !coverage && !quality) return null;
 
   return (
-    <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_220px]">
-      {insights.length > 0 && (
-        <div className="grid gap-2 sm:grid-cols-3">
-          {insights.slice(0, 3).map((insight) => (
-            <div key={insight.id} className="rounded-2xl bg-white/45 p-3 ring-1 ring-white/60">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  {insight.kind || "insight"}
-                </span>
-                <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                  {insight.confidence ?? 3}/5
-                </span>
-              </div>
-              <p className="mt-2 text-sm font-semibold leading-snug">{insight.label}</p>
-              {insight.summary && (
-                <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-foreground/70">
-                  {insight.summary} <CitationList ids={insight.sourceIds ?? []} onHover={onCitationHover} />
-                </p>
-              )}
+    <div className="mt-5">
+      <div ref={railRef} className="core-carousel" aria-label="research highlights">
+        {insights.slice(0, 6).map((insight) => (
+          <div key={insight.id} data-carousel-card className="insight-slide-card">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {insight.kind || "insight"}
+              </span>
+              <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                {insight.confidence ?? 3}/5
+              </span>
             </div>
-          ))}
-        </div>
-      )}
+            <p className="mt-2 text-base font-semibold leading-snug">{insight.label}</p>
+            {insight.summary && (
+              <p className="mt-2 insight-slide-copy text-xs leading-relaxed text-foreground/70">
+                {insight.summary} <CitationList ids={insight.sourceIds ?? []} onHover={onCitationHover} />
+              </p>
+            )}
+          </div>
+        ))}
       {coverage && (
-        <div className="rounded-2xl bg-foreground/[0.04] p-3 text-xs ring-1 ring-white/60">
+        <div data-carousel-card className="coverage-slide-card text-xs">
           <p className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">Coverage</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <MetricPill label="Sources" value={coverage.totalSources} />
@@ -686,6 +908,8 @@ function InsightStrip({
           )}
         </div>
       )}
+      </div>
+      <CarouselHints targetRef={railRef} count={cardCount} />
     </div>
   );
 }
@@ -710,7 +934,7 @@ function PlatformLogoStrip({
 }) {
   return (
     <div className="mb-5 flex items-center justify-center">
-      <div className="flex items-center gap-5 border-y border-white/45 px-5 py-3">
+      <div className="platform-logo-strip">
         {platforms.map((platform) => {
           const hasSources = platform.count > 0;
           return (
@@ -720,7 +944,7 @@ function PlatformLogoStrip({
               title={`${platform.name} · ${platform.count} ${videoLabel}`}
               aria-label={`${platform.name}, ${platform.count} ${videoLabel}`}
               onClick={() => onSelect(platform.id)}
-              className={`group relative grid h-7 w-7 place-items-center transition duration-200 hover:-translate-y-0.5 hover:opacity-100 ${
+              className={`group relative grid h-8 w-8 place-items-center rounded-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white/70 hover:opacity-100 ${
                 hasSources ? "opacity-95" : "opacity-35 grayscale"
               }`}
             >
@@ -776,27 +1000,72 @@ function ProgressPanel({
           style={{ width: `${Math.max(progress, report.ui?.progress ?? 0)}%`, background: "linear-gradient(90deg, var(--violet), var(--indigo))" }}
         />
       </div>
-      {stages.length > 0 && (
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {stages.map((stage) => (
-            <div key={stage.id} className="rounded-xl bg-white/50 px-3 py-2 text-xs ring-1 ring-white/60">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-medium">{stage.label}</span>
-                <span className={`h-2 w-2 rounded-full ${statusClass(stage.status)}`} />
-              </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">{stage.progress}%</div>
+      {stages.length > 0 && <StageCarousel stages={stages} />}
+      <ProviderActivityList events={events} warnings={warnings} />
+    </div>
+  );
+}
+
+function StageCarousel({ stages }: { stages: ResearchStage[] }) {
+  const railRef = useAutoCarousel<HTMLDivElement>(stages.length, 3600);
+  return (
+    <div className="mt-3">
+      <div ref={railRef} className="core-carousel" aria-label="pipeline stages">
+        {stages.map((stage, index) => (
+          <div key={stage.id} data-carousel-card className="core-stage-card">
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+                Step {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${statusClass(stage.status)}`} />
             </div>
-          ))}
-        </div>
-      )}
-      <ProviderActivityList events={events} />
-      {warnings.length > 0 && (
-        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-          {warnings.slice(0, 3).map((warning) => (
-            <p key={warning}>• {warning}</p>
-          ))}
-        </div>
-      )}
+            <p className="mt-2 text-sm font-semibold leading-snug text-foreground">{stage.label}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/70">
+                <span
+                  className="block h-full rounded-full transition-all duration-500"
+                  style={{ width: `${stage.progress}%`, background: "linear-gradient(90deg, var(--violet), var(--indigo))" }}
+                />
+              </div>
+              <span className="w-9 text-right text-[11px] font-semibold text-muted-foreground">{stage.progress}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <CarouselHints targetRef={railRef} count={stages.length} />
+    </div>
+  );
+}
+
+function useAutoCarousel<T extends HTMLElement>(itemCount: number, intervalMs: number) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    if (itemCount < 2) return;
+    const timer = window.setInterval(() => {
+      const node = ref.current;
+      if (!node || node.scrollWidth <= node.clientWidth) return;
+      const firstCard = node.querySelector<HTMLElement>("[data-carousel-card]");
+      const step = (firstCard?.offsetWidth ?? node.clientWidth * 0.72) + 12;
+      const reachedEnd = node.scrollLeft + node.clientWidth >= node.scrollWidth - 8;
+      node.scrollTo({ left: reachedEnd ? 0 : node.scrollLeft + step, behavior: "smooth" });
+    }, intervalMs);
+    return () => window.clearInterval(timer);
+  }, [intervalMs, itemCount]);
+  return ref;
+}
+
+function CarouselHints({ targetRef, count }: { targetRef: { current: HTMLElement | null }; count: number }) {
+  if (count < 2) return null;
+  const move = (direction: -1 | 1) => {
+    const node = targetRef.current;
+    if (!node) return;
+    node.scrollBy({ left: direction * node.clientWidth * 0.72, behavior: "smooth" });
+  };
+  return (
+    <div className="mt-2 flex items-center justify-center gap-1.5">
+      <button type="button" onClick={() => move(-1)} className="carousel-nudge" aria-label="previous cards">‹</button>
+      <span className="h-1 w-10 rounded-full bg-white/70" />
+      <button type="button" onClick={() => move(1)} className="carousel-nudge" aria-label="next cards">›</button>
     </div>
   );
 }
@@ -810,56 +1079,54 @@ type ProviderActivity = {
   message: string;
 };
 
-function ProviderActivityList({ events }: { events: ResearchStreamEvent[] }) {
+function ProviderActivityList({ events, warnings }: { events: ResearchStreamEvent[]; warnings: string[] }) {
   const activities = providerActivities(events);
-  const recent = [...events]
-    .filter((event) => event.message)
-    .slice(-5)
-    .reverse();
+  const latestEvent = [...events].reverse().find((event) => event.message);
+  const failedPlatforms = failedPlatformsFromWarnings(warnings, activities);
 
-  if (!activities.length && !recent.length) return null;
+  if (!activities.length && !latestEvent && !failedPlatforms.length) return null;
 
   return (
-    <div className="mt-3 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-      {activities.length > 0 && (
-        <div className="rounded-2xl bg-white/45 p-3 ring-1 ring-white/60">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Live collection status
-          </p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {activities.slice(0, 8).map((item) => (
-              <div key={item.key} className="rounded-xl bg-white/55 px-3 py-2 text-xs ring-1 ring-white/60">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate font-medium">
-                    {platformName(item.platform)} · {item.provider}
-                  </span>
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${activityStatusClass(item.status)}`} />
-                </div>
-                <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground">
-                  {item.status === "running" ? "Collecting videos/comments now" : `${item.count} source${item.count === 1 ? "" : "s"} returned`}
-                  {item.message ? ` · ${item.message}` : ""}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {recent.length > 0 && (
-        <div className="rounded-2xl bg-foreground/[0.04] p-3 ring-1 ring-white/60">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Backend event log
-          </p>
-          <div className="mt-2 space-y-1.5">
-            {recent.map((event, index) => (
-              <p key={`${event.type}-${index}`} className="line-clamp-2 text-[10px] leading-relaxed text-muted-foreground">
-                <span className="font-semibold text-foreground/70">{event.type}</span> · {event.message}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="mt-3 rounded-2xl bg-white/35 px-3 py-2.5 ring-1 ring-white/55">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Backend</span>
+        {latestEvent && (
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground/70">{latestEvent.type}</span> · {latestEvent.message}
+          </span>
+        )}
+        {failedPlatforms.map((item) => (
+          <span
+            key={item.platform}
+            title={item.message}
+            className="inline-grid h-5 w-5 place-items-center rounded-full bg-white/65 opacity-45 grayscale ring-1 ring-black/5"
+          >
+            <img src={platformLogo(item.platform)} alt={item.platform} width={14} height={14} className="h-3.5 w-3.5 object-contain" />
+          </span>
+        ))}
+        {activities.slice(0, 8).map((item) => (
+          <span
+            key={item.key}
+            title={`${platformName(item.platform)} · ${item.provider}: ${item.message || item.status}`}
+            className={`h-2.5 w-2.5 shrink-0 rounded-full ${activityStatusClass(item.status)}`}
+          />
+        ))}
+      </div>
     </div>
   );
+}
+
+function failedPlatformsFromWarnings(warnings: string[], activities: ProviderActivity[]) {
+  const failed = new Map<string, string>();
+  for (const activity of activities) {
+    if (activity.status === "failed") failed.set(activity.platform, activity.message || `${platformName(activity.platform)} failed`);
+  }
+  for (const warning of warnings) {
+    for (const platform of PLATFORMS) {
+      if (warning.toLowerCase().includes(platform.id)) failed.set(platform.id, warning);
+    }
+  }
+  return Array.from(failed, ([platform, message]) => ({ platform, message }));
 }
 
 function providerActivities(events: ResearchStreamEvent[]): ProviderActivity[] {
@@ -1007,9 +1274,9 @@ function SourceItem({ source, highlighted }: { source: Source; highlighted?: boo
     <li
       data-source-id={String(source.id)}
       data-highlighted={highlighted ? "true" : "false"}
-      className="source-card group flex gap-3 rounded-xl p-2 transition hover:bg-white/60"
+      className="source-card group grid grid-cols-[86px_minmax(0,1fr)] gap-3 rounded-2xl p-2.5 transition hover:bg-white/60"
     >
-      <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg">
+      <div className="relative h-16 w-[86px] shrink-0 overflow-hidden rounded-xl">
         <img src={source.thumbnail || fallbackThumb(source.platform)} alt="" className="h-full w-full object-cover" loading="lazy" />
         {source.duration && (
           <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 py-0.5 text-[9px] font-medium text-white">
@@ -1022,7 +1289,7 @@ function SourceItem({ source, highlighted }: { source: Source; highlighted?: boo
           href={source.url || undefined}
           target="_blank"
           rel="noreferrer"
-          className="line-clamp-2 text-xs font-semibold leading-snug hover:text-primary"
+          className="source-title text-xs font-semibold leading-snug hover:text-primary"
         >
           #{source.id} {source.title} {source.url && <ExternalLink className="ml-1 inline h-3 w-3" />}
         </a>
@@ -1031,7 +1298,7 @@ function SourceItem({ source, highlighted }: { source: Source; highlighted?: boo
           <span>{source.creator || source.platform}</span>
         </div>
         {teaser && (
-          <p className="mt-1 line-clamp-1 text-[10px] leading-snug text-muted-foreground">
+          <p className="source-teaser mt-1 text-[10px] leading-snug text-muted-foreground">
             {teaser}
           </p>
         )}
@@ -1063,6 +1330,24 @@ function sourceTeaser(source: Source) {
   const maxLength = 82;
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).replace(/[\s,.;:!?]+$/u, "")}...`;
+}
+
+function imageFileName(title: string) {
+  const safeTitle = title.replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s+/g, "-").slice(0, 64);
+  return `voxlens-report-${safeTitle || Date.now()}`;
+}
+
+function formatReportDate(value: string | undefined, lang: "zh" | "en") {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(lang === "zh" ? "zh-CN" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function Stars({ n }: { n: number }) {
