@@ -619,6 +619,8 @@ function Results() {
 function ReportExportSheet({ report, title }: { report: ResearchReport; title: string }) {
   const activePlatforms = report.platforms.filter((platform) => platform.count > 0);
   const insights = report.insights ?? [];
+  const exportSources = selectExportSources(report.sources);
+  const omittedSources = Math.max(0, report.sources.length - exportSources.length);
   const generatedAt = formatReportDate(report.generatedAt, report.lang);
   return (
     <div className="w-[1120px] overflow-hidden rounded-[36px] bg-[#fbf7ff] p-12 text-[#1f1930] shadow-[0_28px_100px_-46px_rgba(126,93,255,0.5)]">
@@ -659,9 +661,7 @@ function ReportExportSheet({ report, title }: { report: ResearchReport; title: s
         <div className="mt-8 flex flex-wrap items-center gap-2 border-y border-[#ebe3f2] py-4">
           {activePlatforms.map((platform) => (
             <span key={platform.id} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#332b44] ring-1 ring-[#eadff2]">
-              <span className="grid h-4 w-4 place-items-center rounded-full bg-[#f2edf8] text-[9px] font-bold text-[#8c63ff]">
-                {platform.name.slice(0, 1)}
-              </span>
+              <img src={exportPlatformLogo(platform.id)} alt="" width={16} height={16} className="h-4 w-4 object-contain" />
               {platform.name}
               <span className="text-[#8a7a99]">{platform.count}</span>
             </span>
@@ -730,17 +730,34 @@ function ReportExportSheet({ report, title }: { report: ResearchReport; title: s
           ))}
         </div>
 
-        {report.sources.length > 0 && (
+        {exportSources.length > 0 && (
           <div className="mt-10">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a7a99]">Evidence Sources</p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tight">{report.sources.length} collected items</h2>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight">{exportSources.length} featured sources</h2>
+                {omittedSources > 0 && (
+                  <p className="mt-1 text-xs text-[#8a7a99]">
+                    {omittedSources} additional sources are summarized in the analysis and omitted from this image.
+                  </p>
+                )}
               </div>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-4">
-              {report.sources.map((source) => (
-                <div key={`${source.platform}-${source.id}-${source.url}`} className="rounded-[20px] bg-white/82 p-4 ring-1 ring-[#eadff2]">
+              {exportSources.map((source) => (
+                <div key={`${source.platform}-${source.id}-${source.url}`} className="overflow-hidden rounded-[20px] bg-white/82 ring-1 ring-[#eadff2]">
+                  <div className="relative aspect-video bg-[#f2edf8]">
+                    <img
+                      src={exportSourceCover(source)}
+                      alt=""
+                      crossOrigin="anonymous"
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute left-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/88 shadow-sm ring-1 ring-black/5">
+                      <img src={exportPlatformLogo(source.platform)} alt="" width={20} height={20} className="h-5 w-5 object-contain" />
+                    </span>
+                  </div>
+                  <div className="p-4">
                   <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a7a99]">
                     <span>#{source.id}</span>
                     <span>{platformName(source.platform)}</span>
@@ -760,6 +777,7 @@ function ReportExportSheet({ report, title }: { report: ResearchReport; title: s
                         cited x{source.citationCount}
                       </span>
                     )}
+                  </div>
                   </div>
                 </div>
               ))}
@@ -821,6 +839,33 @@ function ExportComparisonTable({ rows }: { rows: ResearchReport["sections"][numb
       </tbody>
     </table>
   );
+}
+
+function selectExportSources(sources: Source[]) {
+  const withCover = sources.filter((source) => Boolean(source.thumbnail?.trim()));
+  const withoutCover = sources.filter((source) => !source.thumbnail?.trim());
+  return [...withCover, ...withoutCover].slice(0, 4);
+}
+
+function exportSourceCover(source: Source) {
+  return source.thumbnail?.trim() || fallbackThumb(source.platform);
+}
+
+function exportPlatformLogo(platform?: string) {
+  const svgByPlatform: Record<string, string> = {
+    bilibili: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#23ADE5"/><path d="M10 10 7 6M22 10l3-4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><rect x="7" y="11" width="18" height="13" rx="4" fill="#fff"/><circle cx="13" cy="17" r="1.8" fill="#23ADE5"/><circle cx="19" cy="17" r="1.8" fill="#23ADE5"/><path d="M13 21h6" stroke="#23ADE5" stroke-width="2" stroke-linecap="round"/></svg>`,
+    douyin: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#080808"/><path d="M19 7c.6 4 2.7 6.3 6.2 7.1v4.2c-2.4-.1-4.5-.9-6.2-2.2v5.5c0 4-2.9 6.7-6.8 6.7-3.5 0-6.2-2.4-6.2-5.7 0-3.6 3.1-6 7.5-5.6v4.3c-1.8-.4-3.1.2-3.1 1.5 0 1.1.9 1.8 2 1.8 1.4 0 2.3-.9 2.3-2.7V7h4.3z" fill="#fff"/><path d="M19 7c.4 2.2 1.3 4 2.8 5.2" stroke="#25F4EE" stroke-width="2.4" stroke-linecap="round"/><path d="M12.3 24.5c-1.2 0-2-.7-2-1.8" stroke="#FE2C55" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+    youtube: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#fff"/><rect x="5" y="9" width="22" height="14" rx="4" fill="#FF0033"/><path d="m14 13 7 3-7 3v-6z" fill="#fff"/></svg>`,
+    xiaohongshu: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#FF2442"/><text x="16" y="14" text-anchor="middle" font-size="7" font-family="Arial, sans-serif" font-weight="700" fill="#fff">小红</text><text x="16" y="23" text-anchor="middle" font-size="7" font-family="Arial, sans-serif" font-weight="700" fill="#fff">书</text></svg>`,
+    zhihu: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#1772F6"/><path d="M8 8h10v3h-4.4c-.2 1-.4 1.9-.7 2.7H18v3h-4.6c1.2 1.7 2.7 3.4 4.8 5.1l-2.1 2.6c-1.8-1.6-3.2-3.2-4.3-4.9-1.2 2.3-2.7 4.1-4.5 5.5L5.2 22c2.3-1.8 4-3.5 4.9-5.4H6v-3h4.9c.3-.9.5-1.8.7-2.7H8V8zm12 1h6v15h-3V12h-3V9z" fill="#fff"/></svg>`,
+    kuaishou: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#FF5F00"/><rect x="7" y="12" width="18" height="12" rx="4" fill="#fff"/><circle cx="12" cy="9" r="3" fill="#fff"/><circle cx="20" cy="9" r="3" fill="#fff"/><circle cx="14" cy="18" r="2.2" fill="#FF5F00"/><circle cx="20" cy="18" r="2.2" fill="#FF5F00"/></svg>`,
+    weibo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#fff"/><path d="M22.8 11.3c3.2 1.2 5 3.4 4.6 5.9-.6 3.8-5.8 6.6-11.7 6.2-5.7-.4-10-3.6-9.5-7.2.3-2.3 2.4-4.2 5.3-5.3 1.9-.7 2.7.5 2 1.8-.4.8.2 1.1 1 .6 2.9-1.8 6.1-2.6 8.3-2z" fill="#E6162D"/><ellipse cx="15.7" cy="17.6" rx="6.2" ry="4.2" fill="#fff"/><ellipse cx="14.3" cy="17.8" rx="2.2" ry="1.7" fill="#111"/><circle cx="13.5" cy="17.1" r=".7" fill="#fff"/><path d="M23.3 7.5c2.4.2 4.3 2 4.7 4.4M22.2 10c1.4.1 2.5 1.1 2.7 2.5" stroke="#FFB000" stroke-width="2" stroke-linecap="round"/></svg>`,
+  };
+  return svgDataUri(svgByPlatform[platform || ""] || `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#8c63ff"/><circle cx="16" cy="16" r="7" fill="#fff"/></svg>`);
+}
+
+function svgDataUri(svg: string) {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 function CitationList({ ids, onHover }: { ids: Array<number | string>; onHover?: (sourceId: number | string | null) => void }) {
