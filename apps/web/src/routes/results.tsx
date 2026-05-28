@@ -23,6 +23,7 @@ import {
   streamResearchRun,
   type PlatformId,
   type ResearchReport,
+  type RunRecord,
   type ResearchStage,
   type ResearchStreamEvent,
   type Source,
@@ -35,6 +36,7 @@ const searchSchema = z.object({
   run: z.preprocess((value) => (value == null ? undefined : String(value)), z.string().optional()),
 });
 const DEFAULT_RESEARCH_PLATFORMS: PlatformId[] = ["bilibili", "douyin", "youtube", "xiaohongshu", "zhihu", "kuaishou", "weibo"];
+const runCreationCache = new Map<string, Promise<RunRecord>>();
 
 export const Route = createFileRoute("/results")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -202,7 +204,13 @@ function Results() {
             lang,
           };
         setReport(createDraftReport(q, lang));
-        const created = await createResearchRun(payload);
+        const cacheKey = `${q}|${lang}|${liveFlag || "1"}|${forceLive ? "force" : "normal"}`;
+        let pendingRun = runCreationCache.get(cacheKey);
+        if (!pendingRun || forceLive) {
+          pendingRun = createResearchRun(payload);
+          runCreationCache.set(cacheKey, pendingRun);
+        }
+        const created = await pendingRun;
         if (typeof window !== "undefined") {
           const params = new URLSearchParams(window.location.search);
           params.set("q", q);
@@ -759,6 +767,7 @@ function ProgressPanel({
           ))}
         </div>
       )}
+      <ProviderActivityList events={events} />
       {warnings.length > 0 && (
         <div className="mt-3 space-y-1 text-xs text-muted-foreground">
           {warnings.slice(0, 3).map((warning) => (
@@ -768,6 +777,101 @@ function ProgressPanel({
       )}
     </div>
   );
+}
+
+type ProviderActivity = {
+  key: string;
+  platform: string;
+  provider: string;
+  status: "running" | "completed" | "failed" | "partial";
+  count: number;
+  message: string;
+};
+
+function ProviderActivityList({ events }: { events: ResearchStreamEvent[] }) {
+  const activities = providerActivities(events);
+  const recent = [...events]
+    .filter((event) => event.message)
+    .slice(-5)
+    .reverse();
+
+  if (!activities.length && !recent.length) return null;
+
+  return (
+    <div className="mt-3 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+      {activities.length > 0 && (
+        <div className="rounded-2xl bg-white/45 p-3 ring-1 ring-white/60">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Live collection status
+          </p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {activities.slice(0, 8).map((item) => (
+              <div key={item.key} className="rounded-xl bg-white/55 px-3 py-2 text-xs ring-1 ring-white/60">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-medium">
+                    {platformName(item.platform)} · {item.provider}
+                  </span>
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${activityStatusClass(item.status)}`} />
+                </div>
+                <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground">
+                  {item.status === "running" ? "Collecting videos/comments now" : `${item.count} source${item.count === 1 ? "" : "s"} returned`}
+                  {item.message ? ` · ${item.message}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {recent.length > 0 && (
+        <div className="rounded-2xl bg-foreground/[0.04] p-3 ring-1 ring-white/60">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Backend event log
+          </p>
+          <div className="mt-2 space-y-1.5">
+            {recent.map((event, index) => (
+              <p key={`${event.type}-${index}`} className="line-clamp-2 text-[10px] leading-relaxed text-muted-foreground">
+                <span className="font-semibold text-foreground/70">{event.type}</span> · {event.message}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function providerActivities(events: ResearchStreamEvent[]): ProviderActivity[] {
+  const byKey = new Map<string, ProviderActivity>();
+  for (const event of events) {
+    if (event.type !== "provider_started" && event.type !== "sources") continue;
+    const target = event.target as { platform?: string; provider?: string } | undefined;
+    const log = event.type === "sources" ? event.log : undefined;
+    const platform = target?.platform || String(log?.platform || "unknown");
+    const provider = target?.provider || String(log?.provider || "provider");
+    const key = `${platform}:${provider}`;
+    const count = typeof log?.count === "number" ? log.count : Array.isArray(event.sources) ? event.sources.length : 0;
+    const ok = typeof log?.ok === "boolean" ? log.ok : true;
+    byKey.set(key, {
+      key,
+      platform,
+      provider,
+      status: event.type === "provider_started" ? "running" : ok ? "completed" : count > 0 ? "partial" : "failed",
+      count,
+      message: event.message || String(log?.note || ""),
+    });
+  }
+  return Array.from(byKey.values()).sort((a, b) => a.platform.localeCompare(b.platform));
+}
+
+function activityStatusClass(status: ProviderActivity["status"]) {
+  if (status === "completed") return "bg-emerald-400";
+  if (status === "failed") return "bg-red-400";
+  if (status === "partial") return "bg-amber-400";
+  return "animate-pulse bg-[color:var(--violet)]";
+}
+
+function platformName(platform: string) {
+  return PLATFORMS.find((p) => p.id === platform)?.name || platform;
 }
 
 function ProgressRail({ stages, events, progress }: { stages: ResearchStage[]; events: ResearchStreamEvent[]; progress: number }) {
