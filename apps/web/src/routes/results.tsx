@@ -53,6 +53,7 @@ function Results() {
   const { q, live, run } = Route.useSearch();
   const containerRef = useRef<HTMLDivElement>(null);
   const middleScrollRef = useRef<HTMLElement>(null);
+  const sourcesListRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [activeFilter, setActiveFilter] = useState<"all" | PlatformId>("all");
@@ -333,6 +334,13 @@ function Results() {
     setHighlightedSourceId(sourceId == null ? null : String(sourceId));
   };
 
+  const handleSourceFilterChange = (filter: "all" | PlatformId) => {
+    setActiveFilter(filter);
+    window.requestAnimationFrame(() => {
+      sourcesListRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
   const exportReportImage = async () => {
     if (!report || typeof window === "undefined" || !exportRef.current) return;
     setExportingImage(true);
@@ -478,7 +486,8 @@ function Results() {
 
               <PlatformLogoStrip
                 platforms={report.platforms}
-                onSelect={setActiveFilter}
+                activeFilter={activeFilter}
+                onSelect={(platform) => handleSourceFilterChange(platform)}
                 videoLabel={t("videos")}
               />
 
@@ -548,7 +557,7 @@ function Results() {
                     key={f.id}
                     data-active={active}
                     type="button"
-                    onClick={() => setActiveFilter(f.id)}
+                    onClick={() => handleSourceFilterChange(f.id)}
                     className="source-filter-chip"
                   >
                     {f.logo && <img src={f.logo} alt="" width={12} height={12} className="h-3 w-3" />}
@@ -559,7 +568,7 @@ function Results() {
               </div>
             </div>
 
-            <div className="sources-list glass rounded-2xl p-3" style={{ boxShadow: "var(--shadow-glass)" }}>
+            <div ref={sourcesListRef} className="sources-list glass rounded-2xl p-3" style={{ boxShadow: "var(--shadow-glass)" }}>
               {filteredSources.length === 0 ? (
                 <p className="p-4 text-sm text-muted-foreground">{t("empty")}</p>
               ) : (
@@ -912,49 +921,51 @@ function InsightStrip({
 
   return (
     <div className="mt-5">
-      <div ref={railRef} className="core-carousel" aria-label="research highlights">
-        {insights.slice(0, 6).map((insight) => (
-          <div key={insight.id} data-carousel-card className="insight-slide-card">
-            <div className="flex items-center justify-between gap-2">
-              <span className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                {insight.kind || "insight"}
-              </span>
-              <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                {insight.confidence ?? 3}/5
-              </span>
+      <div className="carousel-shell">
+        <div ref={railRef} className="core-carousel" aria-label="research highlights">
+          {insights.slice(0, 6).map((insight) => (
+            <div key={insight.id} data-carousel-card className="insight-slide-card">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {insight.kind || "insight"}
+                </span>
+                <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                  {insight.confidence ?? 3}/5
+                </span>
+              </div>
+              <p className="mt-2 text-base font-semibold leading-snug">{insight.label}</p>
+              {insight.summary && (
+                <p className="mt-2 insight-slide-copy text-xs leading-relaxed text-foreground/70">
+                  {insight.summary} <CitationList ids={insight.sourceIds ?? []} onHover={onCitationHover} />
+                </p>
+              )}
             </div>
-            <p className="mt-2 text-base font-semibold leading-snug">{insight.label}</p>
-            {insight.summary && (
-              <p className="mt-2 insight-slide-copy text-xs leading-relaxed text-foreground/70">
-                {insight.summary} <CitationList ids={insight.sourceIds ?? []} onHover={onCitationHover} />
-              </p>
+          ))}
+          {coverage && (
+            <div data-carousel-card className="coverage-slide-card text-xs">
+              <p className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">Coverage</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <MetricPill label="Sources" value={coverage.totalSources} />
+                <MetricPill label="Comments" value={coverage.totalComments} />
+                <MetricPill label="Platforms" value={coverage.platformCount} />
+                <MetricPill label="Cited" value={coverage.citedSources} />
+              </div>
+              {quality && (
+                <div className="mt-2 rounded-xl bg-white/55 px-2.5 py-2 ring-1 ring-white/60">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-muted-foreground">Quality</span>
+                    <span className="text-sm font-semibold">{quality.overall}/100</span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground">
+                    Evidence {quality.evidenceStrength?.score ?? 0} · Citations {quality.citationAccuracy?.score ?? 0} · Risk {quality.conclusionRisk?.label ?? "n/a"}
+                  </p>
+                </div>
+              )}
+            </div>
             )}
           </div>
-        ))}
-      {coverage && (
-        <div data-carousel-card className="coverage-slide-card text-xs">
-          <p className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">Coverage</p>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <MetricPill label="Sources" value={coverage.totalSources} />
-            <MetricPill label="Comments" value={coverage.totalComments} />
-            <MetricPill label="Platforms" value={coverage.platformCount} />
-            <MetricPill label="Cited" value={coverage.citedSources} />
-          </div>
-          {quality && (
-            <div className="mt-2 rounded-xl bg-white/55 px-2.5 py-2 ring-1 ring-white/60">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-muted-foreground">Quality</span>
-                <span className="text-sm font-semibold">{quality.overall}/100</span>
-              </div>
-              <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground">
-                Evidence {quality.evidenceStrength?.score ?? 0} · Citations {quality.citationAccuracy?.score ?? 0} · Risk {quality.conclusionRisk?.label ?? "n/a"}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+        <CarouselHints targetRef={railRef} count={cardCount} />
       </div>
-      <CarouselHints targetRef={railRef} count={cardCount} />
     </div>
   );
 }
@@ -970,10 +981,12 @@ function MetricPill({ label, value }: { label: string; value?: number }) {
 
 function PlatformLogoStrip({
   platforms,
+  activeFilter,
   onSelect,
   videoLabel,
 }: {
   platforms: ResearchReport["platforms"];
+  activeFilter: "all" | PlatformId;
   onSelect: (platform: PlatformId) => void;
   videoLabel: string;
 }) {
@@ -982,10 +995,12 @@ function PlatformLogoStrip({
       <div className="platform-logo-strip">
         {platforms.map((platform) => {
           const hasSources = platform.count > 0;
+          const active = activeFilter === platform.id;
           return (
             <button
               key={platform.id}
               type="button"
+              data-active={active}
               title={`${platform.name} · ${platform.count} ${videoLabel}`}
               aria-label={`${platform.name}, ${platform.count} ${videoLabel}`}
               onClick={() => onSelect(platform.id)}
@@ -1022,6 +1037,8 @@ function ProgressPanel({
   const stages = report.ui?.stages ?? [];
   const lastMessage = [...events].reverse().find((event) => event.message)?.message;
   const warnings = report.warnings ?? [];
+  const percent = Math.max(progress, report.ui?.progress ?? 0);
+  const isComplete = !streaming && report.status !== "running" && percent >= 100;
   if (!streaming && !warnings.length && !stages.length) return null;
 
   return (
@@ -1036,48 +1053,35 @@ function ProgressPanel({
           </p>
         </div>
         <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-foreground ring-1 ring-black/5">
-          {Math.max(progress, report.ui?.progress ?? 0)}%
+          {percent}%
         </span>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/60">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${Math.max(progress, report.ui?.progress ?? 0)}%`, background: "linear-gradient(90deg, var(--violet), var(--indigo))" }}
-        />
-      </div>
-      {stages.length > 0 && <StageCarousel stages={stages} />}
-      <ProviderActivityList events={events} warnings={warnings} />
+      {!isComplete && (
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/60">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${percent}%`, background: "linear-gradient(90deg, var(--violet), var(--indigo))" }}
+          />
+        </div>
+      )}
+      {stages.length > 0 && !isComplete && <StageGrid stages={stages} />}
+      <ProviderActivityList events={events} warnings={warnings} platforms={report.platforms} />
     </div>
   );
 }
 
-function StageCarousel({ stages }: { stages: ResearchStage[] }) {
-  const railRef = useAutoCarousel<HTMLDivElement>(stages.length, 3600);
+function StageGrid({ stages }: { stages: ResearchStage[] }) {
   return (
-    <div className="mt-3">
-      <div ref={railRef} className="core-carousel" aria-label="pipeline stages">
-        {stages.map((stage, index) => (
-          <div key={stage.id} data-carousel-card className="core-stage-card">
-            <div className="flex items-start justify-between gap-3">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
-                Step {String(index + 1).padStart(2, "0")}
-              </span>
-              <span className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${statusClass(stage.status)}`} />
-            </div>
-            <p className="mt-2 text-sm font-semibold leading-snug text-foreground">{stage.label}</p>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/70">
-                <span
-                  className="block h-full rounded-full transition-all duration-500"
-                  style={{ width: `${stage.progress}%`, background: "linear-gradient(90deg, var(--violet), var(--indigo))" }}
-                />
-              </div>
-              <span className="w-9 text-right text-[11px] font-semibold text-muted-foreground">{stage.progress}%</span>
-            </div>
+    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {stages.map((stage) => (
+        <div key={stage.id} className="rounded-xl bg-white/50 px-3 py-2 text-xs ring-1 ring-white/60">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate font-medium">{stage.label}</span>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${statusClass(stage.status)}`} />
           </div>
-        ))}
-      </div>
-      <CarouselHints targetRef={railRef} count={stages.length} />
+          <div className="mt-1 text-[10px] text-muted-foreground">{stage.progress}%</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1107,9 +1111,8 @@ function CarouselHints({ targetRef, count }: { targetRef: { current: HTMLElement
     node.scrollBy({ left: direction * node.clientWidth * 0.72, behavior: "smooth" });
   };
   return (
-    <div className="mt-2 flex items-center justify-center gap-1.5">
+    <div className="carousel-controls">
       <button type="button" onClick={() => move(-1)} className="carousel-nudge" aria-label="previous cards">‹</button>
-      <span className="h-1 w-10 rounded-full bg-white/70" />
       <button type="button" onClick={() => move(1)} className="carousel-nudge" aria-label="next cards">›</button>
     </div>
   );
@@ -1124,10 +1127,18 @@ type ProviderActivity = {
   message: string;
 };
 
-function ProviderActivityList({ events, warnings }: { events: ResearchStreamEvent[]; warnings: string[] }) {
+function ProviderActivityList({
+  events,
+  warnings,
+  platforms,
+}: {
+  events: ResearchStreamEvent[];
+  warnings: string[];
+  platforms: ResearchReport["platforms"];
+}) {
   const activities = providerActivities(events);
   const latestEvent = [...events].reverse().find((event) => event.message);
-  const failedPlatforms = failedPlatformsFromWarnings(warnings, activities);
+  const failedPlatforms = failedPlatformsFromWarnings(warnings, platforms);
 
   if (!activities.length && !latestEvent && !failedPlatforms.length) return null;
 
@@ -1161,14 +1172,14 @@ function ProviderActivityList({ events, warnings }: { events: ResearchStreamEven
   );
 }
 
-function failedPlatformsFromWarnings(warnings: string[], activities: ProviderActivity[]) {
+function failedPlatformsFromWarnings(warnings: string[], platforms: ResearchReport["platforms"]) {
   const failed = new Map<string, string>();
-  for (const activity of activities) {
-    if (activity.status === "failed") failed.set(activity.platform, activity.message || `${platformName(activity.platform)} failed`);
-  }
+  const counts = new Map(platforms.map((platform) => [platform.id, platform.count]));
   for (const warning of warnings) {
     for (const platform of PLATFORMS) {
-      if (warning.toLowerCase().includes(platform.id)) failed.set(platform.id, warning);
+      if (warning.toLowerCase().includes(platform.id) && (counts.get(platform.id) ?? 0) === 0) {
+        failed.set(platform.id, warning);
+      }
     }
   }
   return Array.from(failed, ([platform, message]) => ({ platform, message }));

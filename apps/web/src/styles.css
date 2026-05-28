@@ -582,7 +582,21 @@
     inset 0 1px 0 color-mix(in oklab, white 78%, transparent),
     0 14px 44px -34px color-mix(in oklab, var(--violet) 46%, transparent);
 }
+.platform-logo-strip button[data-active="true"] {
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, white 78%, var(--violet) 12%),
+      color-mix(in oklab, white 72%, var(--indigo) 14%));
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--violet) 28%, transparent),
+    0 10px 24px -18px color-mix(in oklab, var(--violet) 58%, transparent);
+  opacity: 1;
+  transform: translateY(-1px);
+}
 
+.carousel-shell {
+  position: relative;
+}
 .core-carousel {
   display: flex;
   gap: 12px;
@@ -631,6 +645,24 @@
   font-size: 16px;
   line-height: 1;
   transition: transform 0.18s ease, background 0.18s ease;
+}
+.carousel-controls {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+}
+.carousel-controls .carousel-nudge {
+  pointer-events: auto;
+  height: 28px;
+  width: 28px;
+  background: color-mix(in oklab, white 84%, transparent);
+  box-shadow:
+    0 10px 28px -18px color-mix(in oklab, black 30%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 82%, transparent);
 }
 .carousel-nudge:hover {
   background: color-mix(in oklab, white 86%, transparent);
