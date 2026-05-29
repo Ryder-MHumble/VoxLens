@@ -287,6 +287,7 @@ def _source_from_crawler_row(
             published=first_nonempty(row.get("time"), row.get("last_update_time")),
             summary=text_excerpt([note_text, *[c.text for c in comments[:4]]], 300),
             transcriptPreview=text_excerpt([note_text], 420),
+            fullTranscript=note_text,
             transcriptText=note_text,
             metrics={
                 "likes": row.get("liked_count"),
@@ -316,6 +317,7 @@ def _source_from_crawler_row(
             published=first_nonempty(row.get("created_time"), row.get("updated_time")),
             summary=text_excerpt([first_nonempty(row.get("desc"), row.get("title")), content_text, *[c.text for c in comments[:4]]], 300),
             transcriptPreview=text_excerpt([content_text], 420),
+            fullTranscript=content_text,
             transcriptText=content_text,
             metrics={
                 "upvotes": row.get("voteup_count"),
@@ -365,6 +367,7 @@ def _source_from_crawler_row(
             published=first_nonempty(row.get("create_time"), row.get("publish_time")),
             summary=text_excerpt([text, *[c.text for c in comments[:4]]], 300),
             transcriptPreview=text_excerpt([text], 420),
+            fullTranscript=text,
             transcriptText=text,
             metrics={
                 "likes": row.get("liked_count") or row.get("like_count"),

@@ -195,13 +195,10 @@ def _apply_transcript_rows(source: Source, rows: list[dict[str, Any]]) -> None:
             end=row.get("end") or row.get("to"),
         ))
     source.transcriptSegments = segments
-    source.transcriptText = text_excerpt([segment.text for segment in segments], _full_transcript_limit())
-    source.transcriptPreview = text_excerpt([source.transcriptText], 420)
-
-
-def _full_transcript_limit() -> int:
-    # Keep local source objects useful for synthesis while avoiding unbounded memory growth.
-    return 120_000
+    full_text = " ".join(segment.text.strip() for segment in segments if segment.text.strip())
+    source.fullTranscript = full_text
+    source.transcriptText = full_text
+    source.transcriptPreview = text_excerpt([full_text], 420)
 
 
 def _enrich_many(sources: list[Source], enrich: Any, video_parallelism: int) -> None:

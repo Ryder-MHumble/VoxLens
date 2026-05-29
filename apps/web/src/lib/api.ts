@@ -24,6 +24,7 @@ export type Source = {
   metrics: Record<string, unknown>;
   comments: Comment[];
   transcriptPreview: string;
+  fullTranscript?: string;
   evidenceChannels?: string[];
   quality?: Record<string, unknown>;
   provider?: string;
@@ -85,6 +86,42 @@ export type ComparisonRow = {
   evidence: number[];
 };
 
+export type DecisionCandidate = {
+  name: string;
+  matchReason: string;
+  sourceIds: number[];
+};
+
+export type DimensionComparisonValue = {
+  candidate: string;
+  conclusion: string;
+  condition?: string;
+  confidence: "green" | "yellow" | "gray" | string;
+  sourceIds: number[];
+};
+
+export type DimensionComparison = {
+  dimension: string;
+  values: DimensionComparisonValue[];
+  isContradictory?: boolean;
+  contradictionReason?: string;
+};
+
+export type DecisionRecommendation = {
+  primary?: string;
+  backup?: string;
+  notRecommended?: string;
+  conditions?: string[];
+  sourceIds?: number[];
+  scores?: Record<string, number>;
+};
+
+export type ReportSectionData = Record<string, unknown> & {
+  candidates?: DecisionCandidate[];
+  comparisons?: DimensionComparison[];
+  recommendation?: DecisionRecommendation;
+};
+
 export type ReportSection = {
   id: string;
   title: string;
@@ -96,7 +133,7 @@ export type ReportSection = {
   table: ComparisonRow[];
   sourceIds?: number[];
   metrics?: Record<string, unknown>;
-  data?: Record<string, unknown>;
+  data?: ReportSectionData;
 };
 
 export type OutlineItem = {

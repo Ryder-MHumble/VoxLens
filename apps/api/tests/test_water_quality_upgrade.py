@@ -22,6 +22,7 @@ def make_source(source_id: int = 1, *, title: str = "3000-5000 phone review") ->
         comments=[Comment(text="battery is strong but heat needs checking")],
         transcriptPreview="preview only",
         transcriptText="full battery transcript",
+        fullTranscript="full battery transcript",
         evidenceScore=20,
     )
 
@@ -38,9 +39,10 @@ class WaterQualityUpgradeTests(unittest.TestCase):
         with patch("app.providers.opencli_provider.run_command", fake_run_command):
             _enrich_youtube(source, comments_limit=0, include_transcripts=True)
 
+        self.assertIn("segment 29 battery detail", source.fullTranscript)
         self.assertIn("segment 29 battery detail", source.transcriptText)
         self.assertIn("segment 0 battery detail", source.transcriptPreview)
-        self.assertLess(len(source.transcriptPreview), len(source.transcriptText))
+        self.assertLess(len(source.transcriptPreview), len(source.fullTranscript))
 
     def test_crawler_text_sources_preserve_full_text_as_transcript_context(self) -> None:
         full_text = " ".join([f"paragraph-{idx}" for idx in range(80)])
@@ -57,6 +59,7 @@ class WaterQualityUpgradeTests(unittest.TestCase):
             0,
         )
 
+        self.assertEqual(source.fullTranscript, full_text)
         self.assertEqual(source.transcriptText, full_text)
         self.assertEqual(source.transcriptPreview, full_text[:420])
 
@@ -187,8 +190,8 @@ class WaterQualityUpgradeTests(unittest.TestCase):
 
         with patch.dict(os.environ, {"VOXLENS_ENABLE_LLM": "false"}, clear=False):
             report = build_report(
-                need="3000-5000元手机推荐，重点续航、拍照、性能、散热",
-                query="3000-5000元手机推荐，重点续航、拍照、性能、散热",
+                need="5000以内拍照好的手机",
+                query="5000以内拍照好的手机",
                 lang="zh",
                 sources=sources,
                 run_logs=[RunLog(provider="test", platform="bilibili", ok=True, count=2)],
@@ -221,6 +224,89 @@ class WaterQualityUpgradeTests(unittest.TestCase):
         self.assertEqual(dynamic.dimensions[0].evidence, [1, 2])
         self.assertEqual(legacy.camera, 3)
         self.assertEqual(legacy.battery, 5)
+
+    def test_decision_report_uses_data_derived_dimensions_for_headphones(self) -> None:
+        sources = [
+            Source(
+                id=1,
+                platform="bilibili",
+                title="Sony WH1000XM6 降噪耳机 2000 档横评",
+                creator="up",
+                url="https://example.com/1",
+                comments=[Comment(text="Sony WH1000XM6 降噪很稳，佩戴久了不夹头")],
+                fullTranscript="Sony WH1000XM6 降噪强，音质偏暖，佩戴舒适，通勤风噪控制好。",
+                transcriptPreview="Sony WH1000XM6 降噪强，音质偏暖，佩戴舒适。",
+                evidenceScore=34,
+            ),
+            Source(
+                id=2,
+                platform="youtube",
+                title="Sony WH1000XM6 vs Bose QC Ultra noise cancelling review",
+                creator="creator",
+                url="https://example.com/2",
+                comments=[Comment(text="Bose QC Ultra comfort wins but Sony noise cancelling is stronger")],
+                fullTranscript="Sony WH1000XM6 noise cancelling is stronger. Bose QC Ultra comfort and wearing experience are better, sound quality is relaxed.",
+                transcriptPreview="Sony noise cancelling is stronger; Bose comfort is better.",
+                evidenceScore=32,
+            ),
+            Source(
+                id=3,
+                platform="xiaohongshu",
+                title="Bose QC Ultra 2000 左右降噪耳机体验",
+                creator="creator",
+                url="https://example.com/3",
+                comments=[Comment(text="Bose QC Ultra 佩戴舒适，音质耐听，降噪够用")],
+                fullTranscript="Bose QC Ultra 佩戴舒适，音质耐听，降噪够用，办公室和飞机上都可以。",
+                transcriptPreview="Bose QC Ultra 佩戴舒适，音质耐听，降噪够用。",
+                evidenceScore=31,
+            ),
+            Source(
+                id=4,
+                platform="zhihu",
+                title="AirPods Pro 3 降噪 音质 佩戴 体验",
+                creator="writer",
+                url="https://example.com/4",
+                comments=[Comment(text="AirPods Pro 3 连接方便，降噪和佩戴都不错")],
+                fullTranscript="AirPods Pro 3 降噪不错，音质清爽，佩戴轻，苹果生态连接方便。",
+                transcriptPreview="AirPods Pro 3 降噪不错，音质清爽，佩戴轻。",
+                evidenceScore=28,
+            ),
+        ]
+
+        with patch.dict(os.environ, {"VOXLENS_ENABLE_LLM": "false"}, clear=False):
+            report = build_report(
+                need="2000左右降噪耳机推荐",
+                query="2000左右降噪耳机推荐",
+                lang="zh",
+                sources=sources,
+                run_logs=[RunLog(provider="test", platform="bilibili", ok=True, count=4)],
+            )
+
+        self.assertEqual([section.id for section in report.sections], ["needs", "candidates", "dimension-comparison", "final-recommendation"])
+        candidates = report.sections[1].data["candidates"]
+        comparisons = report.sections[2].data["comparisons"]
+        dimension_names = [item["dimension"] for item in comparisons]
+        self.assertGreaterEqual(len(candidates), 3)
+        self.assertTrue({"降噪", "音质", "佩戴"}.intersection(dimension_names))
+        self.assertNotIn("拍照", dimension_names)
+        self.assertTrue(all(value["sourceIds"] for item in comparisons for value in item["values"]))
+        self.assertIn("买", report.sections[-1].body)
+
+    def test_non_decision_query_keeps_general_section_path(self) -> None:
+        sources = [make_source(1, title="新能源汽车市场趋势分析")]
+
+        with patch.dict(os.environ, {"VOXLENS_ENABLE_LLM": "false"}, clear=False):
+            report = build_report(
+                need="新能源汽车市场趋势如何",
+                query="新能源汽车市场趋势如何",
+                lang="zh",
+                sources=sources,
+                run_logs=[RunLog(provider="test", platform="youtube", ok=True, count=1)],
+            )
+
+        self.assertEqual(report.sections[0].id, "executive-summary")
+        self.assertEqual(len(report.sections), 6)
+        self.assertNotEqual(report.sections[0].kind, "decision_needs")
 
 
 if __name__ == "__main__":

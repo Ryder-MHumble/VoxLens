@@ -65,6 +65,7 @@ class Source(BaseModel):
     metrics: dict[str, Any] = Field(default_factory=dict)
     comments: list[Comment] = Field(default_factory=list)
     transcriptPreview: str = ""
+    fullTranscript: str = Field(default="", exclude=True)
     transcriptText: str = Field(default="", exclude=True)
     transcriptSegments: list[TranscriptSegment] = Field(default_factory=list, exclude=True)
     evidenceChannels: list[str] = Field(default_factory=list)
@@ -126,6 +127,27 @@ class ComparisonRow(BaseModel):
     dimensions: list[ComparisonDimension] = Field(default_factory=list)
     metrics: dict[str, Any] = Field(default_factory=dict)
     evidence: list[int] = Field(default_factory=list)
+
+
+class DecisionCandidate(BaseModel):
+    name: str
+    matchReason: str = ""
+    sourceIds: list[int] = Field(default_factory=list)
+
+
+class DimensionComparisonValue(BaseModel):
+    candidate: str
+    conclusion: str = ""
+    condition: str = ""
+    confidence: str = "gray"
+    sourceIds: list[int] = Field(default_factory=list)
+
+
+class DimensionComparison(BaseModel):
+    dimension: str
+    values: list[DimensionComparisonValue] = Field(default_factory=list)
+    isContradictory: bool = False
+    contradictionReason: str = ""
 
 
 class ReportSection(BaseModel):

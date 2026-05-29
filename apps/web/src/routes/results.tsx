@@ -28,6 +28,10 @@ import {
   type ResearchStage,
   type ResearchStreamEvent,
   type Source,
+  type DecisionCandidate,
+  type DimensionComparison,
+  type DimensionComparisonValue,
+  type DecisionRecommendation,
 } from "@/lib/api";
 import { useI18n, type Lang } from "@/lib/i18n";
 
@@ -522,23 +526,11 @@ function Results() {
               {report.sections.map((section) => (
                 <section key={section.id} id={section.id} className="space-y-4">
                   <h2 className="text-xl font-bold tracking-tight">{section.title}</h2>
-                  {section.body && (
-                    <p className="text-[15px] leading-relaxed text-foreground/85">
-                      {section.body} <CitationList ids={section.sourceIds ?? []} onHover={handleCitationHover} />
-                    </p>
-                  )}
-                  {section.bullets.length > 0 && (
-                    <ul className="space-y-2 text-sm text-foreground/85">
-                      {section.bullets.map((item, i) => (
-                        <li key={`${section.id}-${i}`} className="flex gap-2">
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40" />
-                          <span>{item.text} <CitationList ids={item.citations} onHover={handleCitationHover} /></span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {section.quote && <QuoteCard quote={section.quote} source={report.sources.find((s) => s.id === section.quote?.sourceId)} />}
-                  {section.table.length > 0 && <ComparisonTable rows={section.table} onCitationHover={handleCitationHover} />}
+                  <ReportSectionContent
+                    section={section}
+                    sources={report.sources}
+                    onCitationHover={handleCitationHover}
+                  />
                 </section>
               ))}
             </article>
@@ -1430,6 +1422,264 @@ function statusClass(status?: ResearchStage["status"]) {
   if (status === "partial") return "bg-amber-400";
   if (status === "running") return "animate-pulse bg-[color:var(--violet)]";
   return "bg-muted-foreground/30";
+}
+
+function ReportSectionContent({
+  section,
+  sources,
+  onCitationHover,
+}: {
+  section: ResearchReport["sections"][number];
+  sources: Source[];
+  onCitationHover?: (sourceId: number | string | null) => void;
+}) {
+  const comparisons = section.data?.comparisons;
+  const candidates = section.data?.candidates;
+  const recommendation = section.data?.recommendation;
+  const isDecisionMatrix = section.kind === "decision_matrix" && Array.isArray(comparisons) && comparisons.length > 0;
+  const isCandidateSection = section.kind === "candidate_map" && Array.isArray(candidates) && candidates.length > 0;
+  const isFinalRecommendation = section.kind === "final_recommendation";
+
+  if (isDecisionMatrix) {
+    return (
+      <>
+        {section.body && (
+          <p className="text-[15px] leading-relaxed text-foreground/85">
+            {section.body} <CitationList ids={section.sourceIds ?? []} onHover={onCitationHover} />
+          </p>
+        )}
+        <DecisionMatrix
+          candidates={Array.isArray(candidates) ? candidates : []}
+          comparisons={comparisons}
+          onCitationHover={onCitationHover}
+        />
+      </>
+    );
+  }
+
+  if (isCandidateSection) {
+    return (
+      <>
+        {section.body && (
+          <p className="text-[15px] leading-relaxed text-foreground/85">
+            {section.body} <CitationList ids={section.sourceIds ?? []} onHover={onCitationHover} />
+          </p>
+        )}
+        <DecisionCandidateGrid candidates={candidates} onCitationHover={onCitationHover} />
+      </>
+    );
+  }
+
+  if (isFinalRecommendation) {
+    return (
+      <>
+        <FinalRecommendationCard
+          body={section.body}
+          recommendation={recommendation}
+          sourceIds={section.sourceIds ?? []}
+          onCitationHover={onCitationHover}
+        />
+        {section.bullets.length > 0 && (
+          <ul className="space-y-2 text-sm text-foreground/85">
+            {section.bullets.map((item, i) => (
+              <li key={`${section.id}-${i}`} className="flex gap-2">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40" />
+                <span>{item.text} <CitationList ids={item.citations} onHover={onCitationHover} /></span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {section.body && (
+        <p className="text-[15px] leading-relaxed text-foreground/85">
+          {section.body} <CitationList ids={section.sourceIds ?? []} onHover={onCitationHover} />
+        </p>
+      )}
+      {section.bullets.length > 0 && (
+        <ul className="space-y-2 text-sm text-foreground/85">
+          {section.bullets.map((item, i) => (
+            <li key={`${section.id}-${i}`} className="flex gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40" />
+              <span>{item.text} <CitationList ids={item.citations} onHover={onCitationHover} /></span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {section.quote && <QuoteCard quote={section.quote} source={sources.find((s) => s.id === section.quote?.sourceId)} />}
+      {section.table.length > 0 && <ComparisonTable rows={section.table} onCitationHover={onCitationHover} />}
+    </>
+  );
+}
+
+function DecisionCandidateGrid({
+  candidates,
+  onCitationHover,
+}: {
+  candidates: DecisionCandidate[];
+  onCitationHover?: (sourceId: number | string | null) => void;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {candidates.slice(0, 5).map((candidate, index) => (
+        <div key={`${candidate.name}-${index}`} className="glass rounded-2xl p-4" style={{ boxShadow: "var(--shadow-glass)" }}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-base font-semibold">{candidate.name}</p>
+            <span className="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+              {candidate.sourceIds.length} sources
+            </span>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            {candidate.matchReason} <CitationList ids={candidate.sourceIds} onHover={onCitationHover} />
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DecisionMatrix({
+  candidates,
+  comparisons,
+  onCitationHover,
+}: {
+  candidates: DecisionCandidate[];
+  comparisons: DimensionComparison[];
+  onCitationHover?: (sourceId: number | string | null) => void;
+}) {
+  const candidateNames = candidates.length
+    ? candidates.map((candidate) => candidate.name)
+    : Array.from(new Set(comparisons.flatMap((comparison) => comparison.values.map((value) => value.candidate)))).slice(0, 5);
+  const contradictory = comparisons.filter((comparison) => comparison.isContradictory);
+
+  return (
+    <div className="glass overflow-hidden rounded-2xl" style={{ boxShadow: "var(--shadow-glass)" }}>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] text-sm">
+          <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-white/50">
+              <th className="px-4 py-3 font-semibold">Candidate</th>
+              {comparisons.map((comparison) => (
+                <th key={comparison.dimension} className="px-4 py-3 font-semibold">
+                  <span>{comparison.dimension}</span>
+                  {comparison.isContradictory && (
+                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700">conflict</span>
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {candidateNames.map((candidate) => (
+              <tr key={candidate} className="border-b border-white/30 align-top last:border-0">
+                <td className="px-4 py-4 font-semibold">{candidate}</td>
+                {comparisons.map((comparison) => {
+                  const value = comparison.values.find((item) => item.candidate === candidate);
+                  return (
+                    <td key={`${candidate}-${comparison.dimension}`} className="px-4 py-4">
+                      {value ? (
+                        <DecisionMatrixCell value={value} onCitationHover={onCitationHover} />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No direct evidence</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {contradictory.length > 0 && (
+        <div className="border-t border-white/50 bg-white/35 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+          {contradictory.map((item) => (
+            <p key={item.dimension}>
+              <span className="font-semibold text-foreground/80">{item.dimension}: </span>
+              {item.contradictionReason || "Contradictory evidence needs source-level verification."}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DecisionMatrixCell({
+  value,
+  onCitationHover,
+}: {
+  value: DimensionComparisonValue;
+  onCitationHover?: (sourceId: number | string | null) => void;
+}) {
+  return (
+    <div className="max-w-[240px]">
+      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${confidencePillClass(value.confidence)}`}>
+        {value.confidence || "gray"}
+      </span>
+      <p className="mt-2 text-xs leading-relaxed text-foreground/80">{value.conclusion}</p>
+      {value.condition && <p className="mt-1 text-[11px] text-muted-foreground">Condition: {value.condition}</p>}
+      <div className="mt-2">
+        <CitationList ids={value.sourceIds ?? []} onHover={onCitationHover} />
+      </div>
+    </div>
+  );
+}
+
+function FinalRecommendationCard({
+  body,
+  recommendation,
+  sourceIds,
+  onCitationHover,
+}: {
+  body: string;
+  recommendation?: DecisionRecommendation;
+  sourceIds: number[];
+  onCitationHover?: (sourceId: number | string | null) => void;
+}) {
+  return (
+    <div className="rounded-3xl bg-gradient-to-br from-[#fff7df] via-white to-[#e8f7f1] p-5 shadow-[0_24px_80px_-42px_rgba(40,73,62,0.45)] ring-1 ring-white/75">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Final buy call</p>
+          {recommendation?.primary && <h3 className="mt-2 text-2xl font-bold tracking-tight">Buy {recommendation.primary}</h3>}
+        </div>
+        {recommendation?.backup && (
+          <span className="rounded-full bg-white/75 px-3 py-1 text-xs font-semibold text-foreground/70 ring-1 ring-black/5">
+            Backup: {recommendation.backup}
+          </span>
+        )}
+      </div>
+      {body && (
+        <p className="mt-4 text-[15px] leading-relaxed text-foreground/85">
+          {body} <CitationList ids={sourceIds} onHover={onCitationHover} />
+        </p>
+      )}
+      {recommendation?.conditions?.length ? (
+        <div className="mt-4 grid gap-2 text-xs text-foreground/75 sm:grid-cols-2">
+          {recommendation.conditions.slice(0, 4).map((condition, index) => (
+            <div key={`${condition}-${index}`} className="rounded-2xl bg-white/65 p-3 ring-1 ring-white/70">
+              {condition}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {recommendation?.notRecommended && (
+        <p className="mt-4 rounded-2xl bg-rose-50/80 px-3 py-2 text-xs font-medium text-rose-700">
+          Not recommended when: {recommendation.notRecommended}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function confidencePillClass(confidence?: string) {
+  if (confidence === "green") return "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200";
+  if (confidence === "yellow") return "bg-amber-100 text-amber-700 ring-1 ring-amber-200";
+  return "bg-slate-100 text-slate-600 ring-1 ring-slate-200";
 }
 
 function QuoteCard({ quote, source }: { quote: NonNullable<ResearchReport["sections"][number]["quote"]>; source?: Source }) {
