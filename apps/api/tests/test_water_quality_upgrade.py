@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import unittest
 from unittest.mock import patch
 
-from app.models import Comment, ComparisonRow, CoverageSummary, RunLog, Source
+from app.agents.planner import build_research_plan
+from app.models import Comment, ComparisonRow, CoverageSummary, ResearchRequest, RunLog, Source
 from app.providers.crawler_provider import _source_from_crawler_row
-from app.providers.opencli_provider import _enrich_youtube
+from app.providers.opencli_provider import (
+    _enrich_youtube,
+    _enrich_youtube_transcript_with_api,
+    _search_youtube_with_api,
+    _search_youtube_with_ytdlp,
+)
 from app.services.report_builder import build_report
 
 
@@ -43,6 +50,109 @@ class WaterQualityUpgradeTests(unittest.TestCase):
         self.assertIn("segment 29 battery detail", source.transcriptText)
         self.assertIn("segment 0 battery detail", source.transcriptPreview)
         self.assertLess(len(source.transcriptPreview), len(source.fullTranscript))
+
+    def test_youtube_transcript_api_fallback_populates_transcript(self) -> None:
+        source = Source(id=1, platform="youtube", title="phone review", creator="creator", url="https://youtube.com/watch?v=abc123")
+
+        with patch(
+            "app.providers.opencli_provider._fetch_transcript_with_python",
+            return_value=[{"text": "first transcript line", "start": 0, "end": 1}],
+        ):
+            _enrich_youtube_transcript_with_api(source)
+
+        self.assertEqual(source.transcriptText, "first transcript line")
+
+    def test_youtube_api_search_returns_video_metadata_without_opencli(self) -> None:
+        responses = {
+            "search": {
+                "items": [
+                    {
+                        "id": {"videoId": "abc123"},
+                        "snippet": {
+                            "title": "Long-form product review",
+                            "channelTitle": "Creator",
+                            "description": "Long term field notes",
+                            "publishedAt": "2026-01-02T00:00:00Z",
+                        },
+                    }
+                ]
+            },
+            "videos": {
+                "items": [
+                    {
+                        "id": "abc123",
+                        "snippet": {
+                            "title": "Long-form product review",
+                            "channelTitle": "Creator",
+                            "description": "Detailed field notes",
+                            "publishedAt": "2026-01-02T00:00:00Z",
+                            "thumbnails": {"high": {"url": "https://img.example/high.jpg"}},
+                        },
+                        "contentDetails": {"duration": "PT12M3S"},
+                        "statistics": {"viewCount": "1000", "commentCount": "12", "likeCount": "34"},
+                    }
+                ]
+            },
+        }
+
+        class FakeResponse:
+            def __init__(self, payload: dict[str, object]) -> None:
+                self.payload = payload
+
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *_: object) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return json.dumps(self.payload).encode("utf-8")
+
+        def fake_urlopen(request: object, timeout: int = 0) -> FakeResponse:
+            url = getattr(request, "full_url", "")
+            if "/search?" in url:
+                return FakeResponse(responses["search"])
+            if "/videos?" in url:
+                return FakeResponse(responses["videos"])
+            raise AssertionError(url)
+
+        with patch.dict(os.environ, {"YOUTUBE_API_KEY": "test-key"}, clear=False):
+            with patch("app.providers.opencli_provider.urllib.request.urlopen", fake_urlopen):
+                sources, note = _search_youtube_with_api("product review", 3)
+
+        self.assertEqual(len(sources), 1)
+        self.assertIn("YouTube Data API", note)
+        self.assertEqual(sources[0].title, "Long-form product review")
+        self.assertEqual(sources[0].creator, "Creator")
+        self.assertEqual(sources[0].metrics["source_provider"], "youtube-api")
+
+    def test_ytdlp_fallback_uses_current_python_executable(self) -> None:
+        def fake_run_command(args: list[str], **_: object) -> tuple[int, str, str, float]:
+            self.assertEqual(args[:3], [sys.executable, "-m", "yt_dlp"])
+            return 0, json.dumps({"entries": [{"id": "abc123", "title": "Product review"}]}), "", 0.01
+
+        with patch("app.providers.opencli_provider.run_command", fake_run_command):
+            sources, _ = _search_youtube_with_ytdlp("product", 1)
+
+        self.assertEqual(sources[0].url, "https://www.youtube.com/watch?v=abc123")
+
+    def test_planner_uses_deeper_youtube_target_without_changing_other_platforms(self) -> None:
+        request = ResearchRequest(
+            need="product research",
+            query="product research",
+            platforms=["youtube", "zhihu"],
+            limitPerPlatform=12,
+            detailVideosPerPlatform=2,
+            commentsPerVideo=8,
+        )
+
+        plan, _ = build_research_plan(request)
+        targets = {target.platform: target for target in plan.targets if target.role == "primary"}
+
+        self.assertEqual(targets["youtube"].limit, 20)
+        self.assertEqual(targets["youtube"].detailLimit, 6)
+        self.assertEqual(targets["zhihu"].limit, 12)
+        self.assertEqual(targets["zhihu"].detailLimit, 2)
 
     def test_crawler_text_sources_preserve_full_text_as_transcript_context(self) -> None:
         full_text = " ".join([f"paragraph-{idx}" for idx in range(80)])

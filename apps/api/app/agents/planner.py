@@ -6,6 +6,9 @@ import time
 from app.models import AgentStep, CrawlTarget, ResearchPlan, ResearchRequest
 from app.platform_catalog import CRAWLER_PLATFORM_IDS
 
+YOUTUBE_MIN_LIMIT = 20
+YOUTUBE_MIN_DETAIL_LIMIT = 6
+
 
 def build_research_plan(request: ResearchRequest) -> tuple[ResearchPlan, AgentStep]:
     started = time.perf_counter()
@@ -19,9 +22,9 @@ def build_research_plan(request: ResearchRequest) -> tuple[ResearchPlan, AgentSt
             platform=platform,
             provider=primary,
             query=_platform_query(platform, expanded),
-            limit=request.limitPerPlatform,
+            limit=_target_limit(platform, request.limitPerPlatform),
             commentsLimit=request.commentsPerVideo,
-            detailLimit=request.detailVideosPerPlatform,
+            detailLimit=_target_detail_limit(platform, request.detailVideosPerPlatform),
             videoParallelism=request.maxParallelVideos,
             authMode=request.authMode,
             role="primary",
@@ -69,6 +72,18 @@ def _primary_provider(platform: str, use_crawler_runtime: bool) -> str:
     if use_crawler_runtime and platform in CRAWLER_PLATFORM_IDS:
         return "crawler"
     return "opencli"
+
+
+def _target_limit(platform: str, requested_limit: int) -> int:
+    if platform == "youtube":
+        return max(requested_limit, YOUTUBE_MIN_LIMIT)
+    return requested_limit
+
+
+def _target_detail_limit(platform: str, requested_limit: int) -> int:
+    if platform == "youtube":
+        return max(requested_limit, YOUTUBE_MIN_DETAIL_LIMIT)
+    return requested_limit
 
 
 def _platform_query(platform: str, expanded: list[str]) -> str:

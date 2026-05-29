@@ -90,9 +90,9 @@ PLATFORM_CAPABILITIES: dict[str, dict[str, list[str]]] = {
         "transcripts": [],
     },
     "youtube": {
-        "search": ["opencli", "yt-dlp fallback"],
-        "comments": ["opencli"],
-        "transcripts": ["opencli transcript", "yt-dlp subtitles fallback planned"],
+        "search": ["opencli", "YouTube Data API fallback", "yt-dlp fallback"],
+        "comments": ["opencli", "YouTube Data API fallback"],
+        "transcripts": ["opencli transcript", "youtube-transcript-api", "yt-dlp subtitles fallback"],
     },
     "xiaohongshu": {
         "search": ["crawler"],

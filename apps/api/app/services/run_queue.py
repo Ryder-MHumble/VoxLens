@@ -12,6 +12,9 @@ from app.services.research_stream import stream_research
 from app.services.run_store import TERMINAL_STATUSES, RunStore
 
 
+INTERRUPTED_RUN_MESSAGE = "Run interrupted by backend restart or shutdown. Please start a new run."
+
+
 class RunManager:
     def __init__(self, store: RunStore | None = None) -> None:
         self.store = store or RunStore()
@@ -22,10 +25,14 @@ class RunManager:
 
     async def start(self) -> None:
         self.loop = asyncio.get_running_loop()
+        for event in self.store.cancel_non_terminal_runs(INTERRUPTED_RUN_MESSAGE):
+            self._publish(str(event.get("runId", "")), event)
         if not self.worker or self.worker.done():
             self.worker = asyncio.create_task(self._worker_loop())
 
     async def stop(self) -> None:
+        for event in self.store.cancel_non_terminal_runs(INTERRUPTED_RUN_MESSAGE):
+            self._publish(str(event.get("runId", "")), event)
         if self.worker:
             self.worker.cancel()
             try:
@@ -86,6 +93,8 @@ class RunManager:
         self.store.update_status(run_id, "running", progress=max(1, record.progress))
         try:
             for raw in stream_research(record.request, run_id=run_id):
+                if self._is_terminal(run_id):
+                    return
                 event = _parse_sse(raw)
                 if not event:
                     continue
@@ -107,6 +116,12 @@ class RunManager:
             return
         for queue in list(self.subscribers.get(run_id, [])):
             self.loop.call_soon_threadsafe(queue.put_nowait, event)
+
+    def _is_terminal(self, run_id: str) -> bool:
+        try:
+            return self.store.read_record(run_id, include_report=False).status in TERMINAL_STATUSES
+        except FileNotFoundError:
+            return True
 
 
 def _parse_sse(raw: str) -> dict[str, Any] | None:

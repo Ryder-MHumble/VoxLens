@@ -140,7 +140,7 @@ def synthesize_with_llm(
         "response_format": {"type": "json_object"},
     }
     content = _post_chat_completion(api_key, payload)
-    parsed = _parse_json(content)
+    parsed = _parse_json(content, array_key="sections")
     result = _result_from_payload(parsed, valid_ids=set(selected_source_ids))
     if selection and selection.warnings:
         result.warnings = [*selection.warnings, *result.warnings][:6]
@@ -189,7 +189,7 @@ def extract_semantic_evidence_with_llm(
         "response_format": {"type": "json_object"},
     }
     content = _post_chat_completion(api_key, payload)
-    parsed = _parse_json(content)
+    parsed = _parse_json(content, array_key="evidence")
     valid_ids = {source.id for source in sources}
     return SemanticEvidenceExtractionResult(
         evidence=_sanitize_semantic_evidence(parsed.get("evidence", parsed.get("semanticEvidence", [])), valid_ids),
@@ -324,7 +324,7 @@ def select_sources_with_llm(
         "response_format": {"type": "json_object"},
     }
     content = _post_chat_completion(api_key, payload)
-    parsed = _parse_json(content)
+    parsed = _parse_json(content, array_key="selectedSourceIds")
     selected_ids = _valid_ids(
         parsed.get("selectedSourceIds", parsed.get("sourceIds", parsed.get("sources", []))),
         {source.id for source in sources},
@@ -362,17 +362,41 @@ def _post_chat_completion(api_key: str, payload: dict[str, Any]) -> str:
     if not choices:
         raise RuntimeError("OpenRouter returned no choices")
     message = choices[0].get("message") or {}
-    content = message.get("content")
+    content = _message_content_text(message.get("content"))
     if not content:
         raise RuntimeError("OpenRouter returned empty content")
-    return str(content)
+    return content
 
 
-def _parse_json(content: str) -> dict[str, Any]:
+def _message_content_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                text = item.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+                elif isinstance(item.get("content"), str):
+                    parts.append(str(item["content"]))
+        return "".join(parts)
+    if isinstance(content, dict):
+        text = content.get("text")
+        if isinstance(text, str):
+            return text
+    return ""
+
+
+def _parse_json(content: str, *, array_key: str = "items") -> dict[str, Any]:
     try:
         value = json.loads(content)
     except json.JSONDecodeError:
         value = extract_first_json(content)
+    if isinstance(value, list):
+        return {array_key: value}
     if not isinstance(value, dict):
         raise ValueError("LLM synthesis payload is not an object")
     return value

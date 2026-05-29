@@ -14,10 +14,10 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "VoxLens - 视频证据，可信研究" },
+      { title: "VoxLens - 研究，不止文字" },
       {
         name: "description",
-        content: "Evidence-first social-video research from comments, transcripts, metadata and source links.",
+        content: "Cross-platform social-video research across Bilibili, Douyin and YouTube.",
       },
     ],
   }),

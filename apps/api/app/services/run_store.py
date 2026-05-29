@@ -72,6 +72,42 @@ class RunStore:
         self.write_record(record, include_report=False)
         return record
 
+    def cancel_run(self, run_id: str, reason: str) -> dict[str, Any] | None:
+        record = self.read_record(run_id, include_report=False)
+        if record.status in TERMINAL_STATUSES:
+            return None
+        event = self.append_event(run_id, {
+            "type": "error",
+            "runId": run_id,
+            "message": reason,
+            "progress": record.progress,
+        })
+        self.update_status(run_id, "cancelled", progress=record.progress, error=reason)
+        return event
+
+    def cancel_non_terminal_runs(self, reason: str) -> list[dict[str, Any]]:
+        events: list[dict[str, Any]] = []
+        for record in self.iter_records(include_report=False):
+            if record.status in TERMINAL_STATUSES:
+                continue
+            event = self.cancel_run(record.runId, reason)
+            if event:
+                events.append(event)
+        return events
+
+    def iter_records(self, *, include_report: bool = False) -> Iterable[RunRecord]:
+        for path in sorted(self.root.glob("*/record.json")):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                record = RunRecord.model_validate(data)
+                if include_report:
+                    report = self.read_report(record.runId)
+                    if report:
+                        record.report = report
+                yield record
+            except Exception:
+                continue
+
     def append_event(self, run_id: str, event: dict[str, Any]) -> dict[str, Any]:
         record = self.read_record(run_id, include_report=False)
         sequence = record.eventCount + 1

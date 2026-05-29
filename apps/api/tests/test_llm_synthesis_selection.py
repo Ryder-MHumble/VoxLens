@@ -58,6 +58,77 @@ class LlmSourceSelectionTests(unittest.TestCase):
         self.assertEqual([source.id for source in result.sources], [18, 3, 12])
         self.assertEqual(result.warnings, ["selector note"])
 
+    def test_selector_accepts_bare_json_array_from_llm(self) -> None:
+        from app.services.llm_synthesis import select_sources_with_llm
+
+        sources = make_sources(5)
+
+        def fake_post_chat_completion(api_key: str, payload: dict[str, object]) -> str:
+            return json.dumps([4, 2, 99])
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key", "VOXLENS_ENABLE_LLM": "true"}, clear=False):
+            with patch("app.services.llm_synthesis._post_chat_completion", fake_post_chat_completion):
+                result = select_sources_with_llm(
+                    need="need",
+                    query="query",
+                    lang="en",
+                    sources=sources,
+                    coverage=CoverageSummary(totalSources=len(sources)),
+                    report_kind="general",
+                    max_sources=3,
+                )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(result.source_ids, [4, 2])
+
+    def test_synthesis_accepts_bare_section_array_from_llm(self) -> None:
+        from app.services.llm_synthesis import synthesize_with_llm
+
+        sources = make_sources(1)
+
+        def fake_post_chat_completion(api_key: str, payload: dict[str, object]) -> str:
+            user_prompt = json.loads(str(payload["messages"][1]["content"]))  # type: ignore[index]
+            schema = user_prompt.get("outputSchema", {})
+            if isinstance(schema, dict) and "evidence" in schema:
+                return json.dumps([])
+            if "sourceCandidates" in user_prompt:
+                return json.dumps({"selectedSourceIds": [1], "warnings": []})
+            return json.dumps([
+                {
+                    "id": "source-grounded-answer",
+                    "title": "Source Grounded Answer",
+                    "kind": "answer",
+                    "body": "The selected source supports the answer.",
+                    "sourceIds": [1],
+                }
+            ])
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key", "VOXLENS_ENABLE_LLM": "true"}, clear=False):
+            with patch("app.services.llm_synthesis._post_chat_completion", fake_post_chat_completion):
+                result = synthesize_with_llm(
+                    need="need",
+                    query="query",
+                    lang="en",
+                    sources=sources,
+                    coverage=CoverageSummary(totalSources=len(sources)),
+                    report_kind="general",
+                )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(len(result.sections), 1)
+        self.assertEqual(result.sections[0].sourceIds, [1])
+
+    def test_llm_message_content_accepts_text_parts(self) -> None:
+        from app.services.llm_synthesis import _message_content_text
+
+        self.assertEqual(
+            _message_content_text([{"type": "text", "text": "{\"sections\": []}"}]),
+            "{\"sections\": []}",
+        )
+        self.assertEqual(_message_content_text({"text": "{\"selectedSourceIds\": [1]}"}), "{\"selectedSourceIds\": [1]}")
+
     def test_synthesis_uses_selected_sources_and_keeps_full_citation_lists(self) -> None:
         from app.services.llm_synthesis import synthesize_with_llm
 

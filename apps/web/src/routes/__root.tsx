@@ -64,16 +64,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "VoxLens - 视频证据，可信研究" },
+      { title: "VoxLens - 研究，不止文字" },
       {
         name: "description",
         content:
-          "VoxLens turns social-video titles, comments, transcripts and platform metadata into citable evidence-backed research.",
+          "VoxLens runs multimodal social-video research across Bilibili, Douyin and YouTube, turning videos, comments and transcripts into cited evidence.",
       },
-      { property: "og:title", content: "VoxLens - 视频证据，可信研究" },
+      { property: "og:title", content: "VoxLens - 研究，不止文字" },
       {
         property: "og:description",
-        content: "Evidence-first social-video research from comments, transcripts, metadata and source links.",
+        content: "Cross-platform creator research, in one query.",
       },
       { property: "og:image", content: "/brand/voxlens-og.svg" },
       { property: "og:type", content: "website" },

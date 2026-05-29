@@ -35,6 +35,10 @@ def capabilities_payload() -> dict[str, Any]:
             "riskNote": "Crawler-style access can trigger rate limits, verification, IP blocking, account restrictions or account bans when misused.",
         },
         "providers": provider_capabilities(),
+        "youtube": {
+            "metadataApiConfigured": bool(os.getenv("YOUTUBE_API_KEY") or os.getenv("VOXLENS_YOUTUBE_API_KEY") or os.getenv("GOOGLE_API_KEY")),
+            "note": "YouTube Data API keys are read from environment variables and are never returned by report APIs.",
+        },
         "llm": {
             "provider": "openrouter",
             "configured": bool(os.getenv("OPENROUTER_API_KEY")),

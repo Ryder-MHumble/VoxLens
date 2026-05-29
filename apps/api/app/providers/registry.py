@@ -159,7 +159,7 @@ def provider_capabilities() -> dict[str, Any]:
     return {
         "modes": ["local", "online", "hybrid"],
         "defaultMode": "local",
-        "localDevProviders": ["opencli", "crawler", "yt-dlp"],
+        "localDevProviders": ["opencli", "crawler", "youtube-data-api", "youtube-transcript-api", "yt-dlp"],
         "onlineProvider": {
             "available": online.available(),
             "urlConfigured": bool(online.url),
