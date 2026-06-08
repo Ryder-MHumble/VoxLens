@@ -54,6 +54,7 @@ def stream_research(request: ResearchRequest, run_id: str | None = None) -> Iter
                 is_demo=True,
                 generated_at=datetime.now(),
                 run_id=run_id,
+                research_mode=request.researchMode,
             )
             report.plan = plan
             report.agentTrace = trace
@@ -132,6 +133,7 @@ def stream_research(request: ResearchRequest, run_id: str | None = None) -> Iter
             run_logs=logs,
             generated_at=datetime.now(),
             run_id=run_id,
+            research_mode=request.researchMode,
         )
         report.plan = plan
         trace.append(AgentStep(

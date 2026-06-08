@@ -1,5 +1,6 @@
 export type PlatformId = "bilibili" | "douyin" | "youtube" | "xiaohongshu" | "zhihu" | "kuaishou" | "weibo";
 export type Lang = "zh" | "en";
+export type ResearchMode = "auto" | "consumer" | "business";
 
 export type Comment = {
   author: string;
@@ -249,6 +250,7 @@ export type ResearchReport = {
 export type ResearchRequest = {
   need: string;
   query?: string;
+  researchMode?: ResearchMode;
   platforms?: PlatformId[];
   limitPerPlatform?: number;
   commentsPerVideo?: number;

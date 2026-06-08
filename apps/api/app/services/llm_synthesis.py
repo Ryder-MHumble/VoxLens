@@ -4,63 +4,26 @@ import json
 import os
 import re
 import urllib.request
-from dataclasses import dataclass, field
 from typing import Any
 
-from pydantic import TypeAdapter
-
 from app.models import CitationText, CoverageSummary, ReportInsight, ReportSection, Source
+from app.services.llm_types import (
+    DecisionAttributeExtractionResult,
+    DecisionContradictionResult,
+    LlmSynthesisResult,
+    SemanticEvidenceExtraction,
+    SemanticEvidenceExtractionResult,
+    SourceSelectionResult,
+)
+from app.services.llm_sanitizers import (
+    result_from_payload,
+    sanitize_contradictions,
+    sanitize_decision_products,
+    sanitize_semantic_evidence,
+    valid_ids,
+)
+from app.services.report_templates import business_template_payload
 from app.utils import extract_first_json, text_excerpt
-
-
-@dataclass
-class LlmSynthesisResult:
-    takeaways: list[CitationText] = field(default_factory=list)
-    insights: list[ReportInsight] = field(default_factory=list)
-    sections: list[ReportSection] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-    model: str = ""
-
-
-@dataclass
-class SourceSelectionResult:
-    sources: list[Source] = field(default_factory=list)
-    source_ids: list[int] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-    model: str = ""
-
-
-@dataclass
-class SemanticEvidenceExtraction:
-    candidate: str
-    dimension: str
-    conclusion: str
-    scenario: str = ""
-    value: str = ""
-    quote: str = ""
-    sourceId: int = 0
-    confidence: int = 3
-
-
-@dataclass
-class SemanticEvidenceExtractionResult:
-    evidence: list[SemanticEvidenceExtraction] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-    model: str = ""
-
-
-@dataclass
-class DecisionAttributeExtractionResult:
-    products: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
-    warnings: list[str] = field(default_factory=list)
-    model: str = ""
-
-
-@dataclass
-class DecisionContradictionResult:
-    contradictions: dict[str, dict[str, Any]] = field(default_factory=dict)
-    warnings: list[str] = field(default_factory=list)
-    model: str = ""
 
 
 def synthesize_with_llm(
@@ -89,7 +52,7 @@ def synthesize_with_llm(
     semantic_evidence = semantic_result.evidence if semantic_result else []
     decision_attributes: DecisionAttributeExtractionResult | None = None
     decision_contradictions: DecisionContradictionResult | None = None
-    if report_kind == "decision":
+    if report_kind in {"consumer", "decision"}:
         decision_attributes = extract_decision_attributes_with_llm(
             need=need,
             query=query,
@@ -141,7 +104,7 @@ def synthesize_with_llm(
     }
     content = _post_chat_completion(api_key, payload)
     parsed = _parse_json(content, array_key="sections")
-    result = _result_from_payload(parsed, valid_ids=set(selected_source_ids))
+    result = result_from_payload(parsed, set(selected_source_ids))
     if selection and selection.warnings:
         result.warnings = [*selection.warnings, *result.warnings][:6]
     if semantic_result and semantic_result.warnings:
@@ -172,7 +135,7 @@ def extract_semantic_evidence_with_llm(
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": _semantic_system_prompt(lang)},
+            {"role": "system", "content": _semantic_system_prompt(lang, report_kind)},
             {
                 "role": "user",
                 "content": _semantic_extraction_prompt(
@@ -192,7 +155,7 @@ def extract_semantic_evidence_with_llm(
     parsed = _parse_json(content, array_key="evidence")
     valid_ids = {source.id for source in sources}
     return SemanticEvidenceExtractionResult(
-        evidence=_sanitize_semantic_evidence(parsed.get("evidence", parsed.get("semanticEvidence", [])), valid_ids),
+        evidence=sanitize_semantic_evidence(parsed.get("evidence", parsed.get("semanticEvidence", [])), valid_ids),
         warnings=[str(item)[:240] for item in parsed.get("warnings", []) if str(item).strip()][:6],
         model=model,
     )
@@ -234,7 +197,7 @@ def extract_decision_attributes_with_llm(
     parsed = _parse_json(content)
     valid_ids = {source.id for source in sources}
     return DecisionAttributeExtractionResult(
-        products=_sanitize_decision_products(parsed.get("products", parsed.get("productAttributes", {})), valid_ids),
+        products=sanitize_decision_products(parsed.get("products", parsed.get("productAttributes", {})), valid_ids),
         warnings=[str(item)[:240] for item in parsed.get("warnings", []) if str(item).strip()][:6],
         model=model,
     )
@@ -275,7 +238,7 @@ def analyze_decision_contradictions_with_llm(
     content = _post_chat_completion(api_key, payload)
     parsed = _parse_json(content)
     return DecisionContradictionResult(
-        contradictions=_sanitize_contradictions(parsed.get("contradictions", parsed.get("contradictionAnalysis", {}))),
+        contradictions=sanitize_contradictions(parsed.get("contradictions", parsed.get("contradictionAnalysis", {}))),
         warnings=[str(item)[:240] for item in parsed.get("warnings", []) if str(item).strip()][:6],
         model=model,
     )
@@ -325,7 +288,7 @@ def select_sources_with_llm(
     }
     content = _post_chat_completion(api_key, payload)
     parsed = _parse_json(content, array_key="selectedSourceIds")
-    selected_ids = _valid_ids(
+    selected_ids = valid_ids(
         parsed.get("selectedSourceIds", parsed.get("sourceIds", parsed.get("sources", []))),
         {source.id for source in sources},
         limit=max_selected,
@@ -402,243 +365,6 @@ def _parse_json(content: str, *, array_key: str = "items") -> dict[str, Any]:
     return value
 
 
-def _result_from_payload(payload: dict[str, Any], valid_ids: set[int]) -> LlmSynthesisResult:
-    takeaways = TypeAdapter(list[CitationText]).validate_python(_sanitize_citation_items(payload.get("takeaways", []), valid_ids))
-    insights = TypeAdapter(list[ReportInsight]).validate_python(_sanitize_insights(payload.get("insights", []), valid_ids))
-    sections = TypeAdapter(list[ReportSection]).validate_python(_sanitize_sections(payload.get("sections", []), valid_ids))
-    warnings = [str(item)[:240] for item in payload.get("warnings", []) if str(item).strip()]
-    return LlmSynthesisResult(takeaways=takeaways[:6], insights=insights[:6], sections=sections[:8], warnings=warnings[:6])
-
-
-def _sanitize_citation_items(items: Any, valid_ids: set[int]) -> list[dict[str, Any]]:
-    sanitized: list[dict[str, Any]] = []
-    if not isinstance(items, list):
-        return sanitized
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        text = str(item.get("text", "")).strip()
-        if not text:
-            continue
-        sanitized.append({"text": text, "citations": _valid_ids(item.get("citations", item.get("sourceIds", [])), valid_ids)})
-    return sanitized
-
-
-def _sanitize_insights(items: Any, valid_ids: set[int]) -> list[dict[str, Any]]:
-    allowed = {"answer", "consensus", "disagreement", "risk", "opportunity", "coverage"}
-    sanitized: list[dict[str, Any]] = []
-    if not isinstance(items, list):
-        return sanitized
-    for idx, item in enumerate(items, start=1):
-        if not isinstance(item, dict):
-            continue
-        label = str(item.get("label", "")).strip()
-        if not label:
-            continue
-        kind = str(item.get("kind", "consensus"))
-        sanitized.append({
-            "id": _safe_id(str(item.get("id", f"insight-{idx}"))),
-            "kind": kind if kind in allowed else "consensus",
-            "label": label,
-            "summary": str(item.get("summary", ""))[:360],
-            "confidence": _int_range(item.get("confidence", 3), 1, 5),
-            "sourceIds": _valid_ids(item.get("sourceIds", item.get("citations", [])), valid_ids),
-        })
-    return sanitized
-
-
-def _sanitize_sections(items: Any, valid_ids: set[int]) -> list[dict[str, Any]]:
-    sanitized: list[dict[str, Any]] = []
-    if not isinstance(items, list):
-        return sanitized
-    for idx, item in enumerate(items, start=1):
-        if not isinstance(item, dict):
-            continue
-        title = str(item.get("title", "")).strip()
-        body = str(item.get("body", "")).strip()
-        if not title or not body:
-            continue
-        section = {
-            "id": _safe_id(str(item.get("id", f"section-{idx}"))),
-            "title": title,
-            "kind": str(item.get("kind", "narrative"))[:40],
-            "level": _int_range(item.get("level", 1), 1, 3),
-            "body": body,
-            "bullets": _sanitize_citation_items(item.get("bullets", []), valid_ids),
-            "quote": None,
-            "table": _sanitize_table_rows(item.get("table", []), valid_ids),
-            "sourceIds": _valid_ids(item.get("sourceIds", item.get("citations", [])), valid_ids),
-            "metrics": item.get("metrics", {}) if isinstance(item.get("metrics"), dict) else {},
-            "data": item.get("data", {}) if isinstance(item.get("data"), dict) else {},
-        }
-        sanitized.append(section)
-    return sanitized
-
-
-def _sanitize_table_rows(items: Any, valid_ids: set[int]) -> list[dict[str, Any]]:
-    sanitized: list[dict[str, Any]] = []
-    if not isinstance(items, list):
-        return sanitized
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        name = str(item.get("name", "")).strip()
-        if not name:
-            continue
-        sanitized.append({
-            "name": name[:120],
-            "signal": str(item.get("signal", ""))[:260],
-            "support": _int_range(item.get("support", item.get("lowLight", 3)), 1, 5),
-            "risk": _int_range(item.get("risk", 3), 1, 5),
-            "freshness": _int_range(item.get("freshness", item.get("battery", 3)), 1, 5),
-            "confidence": _int_range(item.get("confidence", item.get("camera", 3)), 1, 5),
-            "price": str(item.get("price", ""))[:80],
-            "dimensions": _sanitize_dimensions(item.get("dimensions", []), valid_ids),
-            "metrics": item.get("metrics", {}) if isinstance(item.get("metrics"), dict) else {},
-            "evidence": _valid_ids(item.get("evidence", item.get("sourceIds", [])), valid_ids),
-        })
-    return sanitized
-
-
-def _sanitize_dimensions(items: Any, valid_ids: set[int]) -> list[dict[str, Any]]:
-    sanitized: list[dict[str, Any]] = []
-    if not isinstance(items, list):
-        return sanitized
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        key = str(item.get("key", item.get("dimension", ""))).strip()
-        label = str(item.get("label", key)).strip()
-        if not key or not label:
-            continue
-        sanitized.append({
-            "key": _safe_id(key)[:40],
-            "label": label[:80],
-            "score": _int_range(item.get("score"), 1, 5) if item.get("score") is not None else None,
-            "summary": str(item.get("summary", item.get("conclusion", "")))[:260],
-            "evidence": _valid_ids(item.get("evidence", item.get("sourceIds", [])), valid_ids),
-            "metrics": item.get("metrics", {}) if isinstance(item.get("metrics"), dict) else {},
-        })
-    return sanitized[:8]
-
-
-def _sanitize_semantic_evidence(items: Any, valid_ids: set[int]) -> list[SemanticEvidenceExtraction]:
-    if not isinstance(items, list):
-        return []
-    evidence: list[SemanticEvidenceExtraction] = []
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        source_ids = _valid_ids(item.get("sourceId", item.get("source_id", item.get("sourceIds", []))), valid_ids, limit=1)
-        source_id = source_ids[0] if source_ids else 0
-        if not source_id:
-            continue
-        candidate = str(item.get("candidate", item.get("model", item.get("name", "")))).strip()
-        dimension = str(item.get("dimension", item.get("key", ""))).strip()
-        conclusion = str(item.get("conclusion", item.get("summary", ""))).strip()
-        if not dimension or not conclusion:
-            continue
-        evidence.append(SemanticEvidenceExtraction(
-            candidate=candidate[:120],
-            dimension=dimension[:80],
-            conclusion=conclusion[:360],
-            scenario=str(item.get("scenario", ""))[:180],
-            value=str(item.get("value", item.get("metric", ""))[:120] if isinstance(item.get("value", item.get("metric", "")), str) else item.get("value", item.get("metric", "")))[:120],
-            quote=str(item.get("quote", item.get("excerpt", "")))[:280],
-            sourceId=source_id,
-            confidence=_int_range(item.get("confidence", 3), 1, 5),
-        ))
-    return evidence[:80]
-
-
-def _sanitize_decision_products(items: Any, valid_ids: set[int]) -> dict[str, dict[str, list[dict[str, Any]]]]:
-    if not isinstance(items, dict):
-        return {}
-    products: dict[str, dict[str, list[dict[str, Any]]]] = {}
-    for product_name, dimensions in items.items():
-        name = str(product_name).strip()[:120]
-        if not name or not isinstance(dimensions, dict):
-            continue
-        clean_dimensions: dict[str, list[dict[str, Any]]] = {}
-        for dimension_name, values in dimensions.items():
-            dimension = str(dimension_name).strip()[:80]
-            if not dimension:
-                continue
-            value_items = values if isinstance(values, list) else [values]
-            clean_values: list[dict[str, Any]] = []
-            for value in value_items:
-                if not isinstance(value, dict):
-                    continue
-                source_ids = _valid_ids(value.get("sourceIds", value.get("sources", value.get("sourceId", []))), valid_ids)
-                if not source_ids:
-                    continue
-                conclusion = str(value.get("conclusion", value.get("summary", ""))).strip()
-                if not conclusion:
-                    continue
-                clean_values.append({
-                    "conclusion": conclusion[:360],
-                    "condition": str(value.get("condition", value.get("testCondition", value.get("scenario", ""))) or "")[:180],
-                    "sourceIds": source_ids,
-                    "value": str(value.get("value", value.get("metric", "")) or "")[:140],
-                })
-            if clean_values:
-                clean_dimensions[dimension] = clean_values[:8]
-        if clean_dimensions:
-            products[name] = clean_dimensions
-    return products
-
-
-def _sanitize_contradictions(items: Any) -> dict[str, dict[str, Any]]:
-    if not isinstance(items, dict):
-        return {}
-    contradictions: dict[str, dict[str, Any]] = {}
-    for dimension_name, value in items.items():
-        if not isinstance(value, dict):
-            continue
-        dimension = str(dimension_name).strip()[:80]
-        if not dimension:
-            continue
-        contradictions[dimension] = {
-            "isContradictory": bool(value.get("isContradictory", value.get("contradictory", False))),
-            "contradictionDescription": str(value.get("contradictionDescription", value.get("description", "")) or "")[:360],
-            "possibleReason": str(value.get("possibleReason", value.get("reason", "")) or "")[:360],
-        }
-    return contradictions
-
-
-def _valid_ids(values: Any, valid_ids: set[int], limit: int | None = None) -> list[int]:
-    if isinstance(values, (str, int)):
-        values = [values]
-    if not isinstance(values, list):
-        return []
-    ids: list[int] = []
-    for value in values:
-        if isinstance(value, dict):
-            value = value.get("id", value.get("sourceId", value.get("source_id")))
-        try:
-            source_id = int(value)
-        except (TypeError, ValueError):
-            continue
-        if source_id in valid_ids and source_id not in ids:
-            ids.append(source_id)
-            if limit is not None and len(ids) >= limit:
-                break
-    return ids
-
-
-def _safe_id(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", value.strip().lower()).strip("-")
-    return slug[:48] or "section"
-
-
-def _int_range(value: Any, low: int, high: int) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        parsed = low
-    return max(low, min(high, parsed))
-
-
 def _selection_system_prompt(lang: str) -> str:
     if lang == "zh":
         return (
@@ -651,7 +377,17 @@ def _selection_system_prompt(lang: str) -> str:
     )
 
 
-def _semantic_system_prompt(lang: str) -> str:
+def _semantic_system_prompt(lang: str, report_kind: str = "general") -> str:
+    if report_kind == "business":
+        if lang == "zh":
+            return (
+                "你是 VoxLens 的 B 端产品/品类研究证据提取员。你会读取完整字幕/正文分块、评论和来源元数据，"
+                "只提取能支撑品类范围、竞品格局、用户需求、机会和风险的结构化证据。不要写报告，只输出 JSON。"
+            )
+        return (
+            "You extract evidence for VoxLens B2B product/category research. Read transcript/content chunks, comments and metadata, "
+            "then extract structured evidence for category scope, competitors, user demand, opportunities and risks. Return JSON only."
+        )
     if lang == "zh":
         return (
             "你是 VoxLens 的语义证据提取员。你会读取完整字幕/正文分块、评论和来源元数据，"
@@ -696,12 +432,20 @@ def _semantic_extraction_prompt(
     report_kind: str,
 ) -> str:
     zh = lang == "zh"
-    task = (
-        "从每个来源中提取候选产品、维度、结论、测试/使用场景、实测值或描述、短引用片段和置信度。"
-        "维度名称必须来自标题、评论、字幕/正文中的真实表述；如果证据不足就不要补编。"
-        if zh
-        else "Extract candidate product, dimension, conclusion, test/use scenario, measured value or description, short quote and confidence from each source. Dimension names must come from real wording in titles, comments or transcripts/content; do not invent missing evidence."
-    )
+    if report_kind == "business":
+        task = (
+            "从每个来源中提取品类/产品/竞品/用户场景、研究维度、证据结论、适用上下文、具体数值或描述、短引用片段和置信度。"
+            "维度名称必须来自标题、评论、字幕/正文中的真实表述；如果证据不足就不要补编。"
+            if zh
+            else "Extract category/product/competitor/user-scenario, research dimension, evidence conclusion, context, measured value or description, short quote and confidence from each source. Dimension names must come from real wording in titles, comments or transcripts/content; do not invent missing evidence."
+        )
+    else:
+        task = (
+            "从每个来源中提取候选产品、维度、结论、测试/使用场景、实测值或描述、短引用片段和置信度。"
+            "维度名称必须来自标题、评论、字幕/正文中的真实表述；如果证据不足就不要补编。"
+            if zh
+            else "Extract candidate product, dimension, conclusion, test/use scenario, measured value or description, short quote and confidence from each source. Dimension names must come from real wording in titles, comments or transcripts/content; do not invent missing evidence."
+        )
     return json.dumps(
         {
             "task": task,
@@ -816,12 +560,20 @@ def _selection_prompt(
     max_sources: int,
 ) -> str:
     zh = lang == "zh"
-    instructions = (
+    if report_kind == "business":
+        instructions = (
+            "从全部候选中选择最能支撑 B 端产品/品类研究的高置信来源。优先选择能覆盖品类边界、竞品、用户需求、卖点、渠道/价格、机会和风险的来源；"
+            "优先有评论、字幕/文本、摘要、明确 URL、跨平台互证和 semanticEvidence 的来源；避免只因排序靠前或热度高就选择。返回 selectedSourceIds，按推荐引用优先级排序。"
+            if zh
+            else "Select the highest-confidence sources for B2B product/category research. Prefer sources that cover category boundaries, competitors, user demand, selling points, channel/price, opportunities and risks; prioritize comments, transcript/text, summaries, URLs, cross-platform corroboration and semanticEvidence. Do not select only because a source appears early or is popular. Return selectedSourceIds in recommended citation priority order."
+        )
+    else:
+        instructions = (
             "从全部候选中选择最能支撑用户问题的高置信来源。优先选择有评论、字幕/文本、摘要、明确 URL、跨平台互证和与问题直接相关的来源；"
             "尤其优先选择 semanticEvidence 能覆盖用户决策维度、解释矛盾场景的来源；避免只因排序靠前或热度高就选择。返回 selectedSourceIds，按推荐引用优先级排序。"
             if zh
             else "Select the highest-confidence sources for the user question from all candidates. Prefer sources with comments, transcript/text, summaries, URLs, cross-platform corroboration, direct relevance and semanticEvidence that covers decision dimensions or explains contradictory scenarios; do not select only because a source appears early or is popular. Return selectedSourceIds in recommended citation priority order."
-    )
+        )
     evidence_by_source = _semantic_evidence_by_source(semantic_evidence)
     return json.dumps(
         {
@@ -842,6 +594,28 @@ def _selection_prompt(
 
 
 def _system_prompt(lang: str, report_kind: str = "general") -> str:
+    if report_kind == "consumer":
+        if lang == "zh":
+            return (
+                "你是普通用户买前决策助手。用户不是产品经理或市场研究员，他只是想少看很多测评视频，"
+                "更快知道应该买什么、为什么、什么情况下不要买。\n"
+                "规则：\n"
+                "1. 用用户能听懂的话，先给清晰建议，再解释证据。\n"
+                "2. 不使用 B 端固定研究模板，不写市场规模、品类格局或商业建议。\n"
+                "3. 评价维度从来源标题、评论、字幕/正文中提取；不要套用固定品类模板。\n"
+                "4. 所有关键建议、避坑点和分歧都必须引用 source id。\n"
+                "5. 如果证据不足，不要假装确定；说明还需要用户确认的预算、场景或禁区。"
+            )
+        return (
+            "You are a pre-purchase advisor for ordinary shoppers. The user is not a product manager or market researcher; "
+            "they want to avoid watching many review videos and quickly understand what to buy, why, and when not to buy.\n"
+            "Rules:\n"
+            "1. Use plain buyer-facing language: clear recommendation first, evidence second.\n"
+            "2. Do not use a fixed B2B research template, market sizing, category landscape or business actions.\n"
+            "3. Extract evaluation dimensions from source titles, comments and transcripts/content; do not apply a fixed category template.\n"
+            "4. Cite source ids for every key recommendation, caveat and disagreement.\n"
+            "5. If evidence is thin, say what budget, scenario or non-negotiable the user still needs to confirm."
+        )
     if report_kind == "decision":
         if lang == "zh":
             return (
@@ -869,6 +643,30 @@ def _system_prompt(lang: str, report_kind: str = "general") -> str:
             "3. Do not hide contradictions; explaining why they conflict matters more than only saying whether they conflict.\n"
             "4. Do not invent data absent from sources.\n"
             "5. Dimensions differ by product category; extract them from source content instead of using a fixed template."
+        )
+    if report_kind == "business":
+        if lang == "zh":
+            return (
+                "你是 B 端产品/品类研究分析师。你的用户是产品、市场、运营或品牌团队，不是个人购物用户。\n"
+                "你的任务：\n"
+                "1. 只基于给定 sources、comments、transcripts 提炼品类范围、竞品格局、用户需求、卖点、机会和风险。\n"
+                "2. 使用固定 B 端报告模板：研究结论摘要、品类/产品范围、竞品与内容格局、用户声音与需求信号、机会/风险/分歧、证据缺口与下一步研究。\n"
+                "3. 明确区分来源证据和你的业务推断；所有关键判断必须引用 source id。\n"
+                "规则：\n"
+                "1. 不输出“买 X / 不买 X”的 C 端购买建议。\n"
+                "2. 不编造市场规模、份额、价格、渠道或用户画像；来源没有就标为待验证。\n"
+                "3. 跨平台重复信号优先于单条爆款内容或标题命中。"
+            )
+        return (
+            "You are a B2B product/category research analyst. The user is a product, marketing, ops or brand team, not an individual shopper.\n"
+            "Tasks:\n"
+            "1. Use only the supplied sources, comments and transcripts to synthesize category scope, competitors, user demand, selling points, opportunities and risks.\n"
+            "2. Use the fixed B2B report template: Research Brief, Category & Product Scope, Competitive Landscape, User Voice & Demand Signals, Opportunities/Risks/Disagreements, Evidence Gaps & Next Research.\n"
+            "3. Separate source-backed evidence from business inference; cite source ids for every important claim.\n"
+            "Rules:\n"
+            "1. Do not produce C-end shopping advice such as 'buy X' or 'do not buy X'.\n"
+            "2. Do not invent market size, share, prices, channels or personas; mark absent facts as validation gaps.\n"
+            "3. Cross-platform repeated signals outrank single viral posts or title-only matches."
         )
     if lang == "zh":
         return (
@@ -917,7 +715,19 @@ def _user_prompt(
         ],
         "warnings": ["string"],
     }
-    if report_kind == "decision":
+    if report_kind == "consumer":
+        instructions = (
+            "请输出中文 JSON，不要 markdown。写给普通消费者：不要使用固定 B 端模板，也不要写市场/品类研究。可以根据证据选择 3-5 段，但必须包含：清晰建议、为什么、适合/不适合人群、避坑点或还要确认什么。语气要像帮朋友做买前判断，直接、可读、保留出处。"
+            if zh
+            else "Return English JSON, no markdown. Write for an ordinary shopper: do not use a fixed B2B template or market/category research. Choose 3-5 sections based on evidence, but include a clear recommendation, why, who it fits/doesn't fit, caveats or what to verify next. Use direct buyer-facing language and cite sources."
+        )
+        schema["sections"] = [
+            {"id": "quick-answer", "title": "先说结论" if zh else "Start with the answer", "kind": "consumer_answer", "body": "string", "bullets": [{"text": "string", "citations": [1]}], "sourceIds": [1]},
+            {"id": "why", "title": "为什么这么判断" if zh else "Why this answer", "kind": "consumer_reasoning", "body": "string", "bullets": [{"text": "string", "citations": [1]}], "sourceIds": [1]},
+            {"id": "fit-check", "title": "适合谁，不适合谁" if zh else "Who it fits, who should skip it", "kind": "consumer_fit", "body": "string", "bullets": [{"text": "string", "citations": [1]}], "sourceIds": [1]},
+            {"id": "caveats", "title": "避坑点和还要确认什么" if zh else "Caveats and what to check next", "kind": "consumer_caveats", "body": "string", "bullets": [{"text": "string", "citations": [1]}], "sourceIds": [1]},
+        ]
+    elif report_kind == "decision":
         instructions = (
             "请输出中文 JSON，不要 markdown。购买决策报告必须使用四段结构：我的需求、候选筛选、维度对比矩阵、最终推荐。维度来自来源内容，不要套用固定品类模板；最终推荐必须包含明确“买X”、条件建议和不推荐情况。"
             if zh
@@ -929,6 +739,13 @@ def _user_prompt(
             {"id": "dimension-comparison", "title": "3. 维度对比矩阵" if zh else "3. Dimension Comparison Matrix", "kind": "decision_matrix", "body": "string", "sourceIds": [1], "data": {"comparisons": [{"dimension": "source-derived name", "values": [{"candidate": "string", "conclusion": "string", "condition": "string", "confidence": "green|yellow|gray", "sourceIds": [1]}], "isContradictory": False, "contradictionReason": "string"}]}},
             {"id": "final-recommendation", "title": "4. 最终推荐" if zh else "4. Final Recommendation", "kind": "final_recommendation", "body": "string", "bullets": [{"text": "string", "citations": [1]}], "sourceIds": [1]},
         ]
+    elif report_kind == "business":
+        instructions = (
+            "请输出中文 JSON，不要 markdown。B 端产品/品类研究报告必须使用六段固定模板：研究结论摘要、品类/产品范围、竞品与内容格局、用户声音与需求信号、机会/风险/分歧、证据缺口与下一步研究。不要写个人购买建议；没有来源支撑的市场规模、份额、价格、渠道或用户画像必须标为待验证。"
+            if zh
+            else "Return English JSON, no markdown. B2B product/category research must use the six-section fixed template: Research Brief, Category & Product Scope, Competitive Landscape, User Voice & Demand Signals, Opportunities/Risks/Disagreements, Evidence Gaps & Next Research. Do not write personal shopping advice; mark unsupported market size, share, prices, channels or personas as validation gaps."
+        )
+        schema["sections"] = _business_section_schema(zh)
     else:
         instructions = (
             "请输出中文 JSON，不要 markdown。报告要像业务团队可读的研究报告：执行摘要、关键发现、证据拆解、风险/分歧、建议动作。"
@@ -962,10 +779,27 @@ def _user_prompt(
             "semanticEvidence": [_semantic_evidence_payload(item) for item in semantic_evidence if item.sourceId in selected_source_ids],
             "decisionAttributeMatrix": decision_attributes,
             "contradictionAnalysis": contradiction_analysis,
+            "businessTemplate": business_template_payload(zh) if report_kind == "business" else [],
             "sources": source_pack,
         },
         ensure_ascii=False,
     )
+
+
+def _business_section_schema(zh: bool) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": item["id"],
+            "title": item["title"],
+            "kind": item["kind"],
+            "body": "string",
+            "bullets": [{"text": "string", "citations": [1]}],
+            "sourceIds": [1],
+            "metrics": {"confidence": "high|medium|low|insufficient"},
+            "data": {"validationGaps": ["unsupported market size/share/price/channel/persona claims"]},
+        }
+        for item in business_template_payload(zh)
+    ]
 
 
 def _source_candidate_payload(source: Source, semantic_evidence: list[SemanticEvidenceExtraction] | None = None) -> dict[str, Any]:

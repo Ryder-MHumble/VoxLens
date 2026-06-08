@@ -1,16 +1,4 @@
-const PLATFORM_LOGO_PATHS: Record<string, string> = {
-  bilibili: "/logo/bilibili.png",
-  douyin: "/logo/douyin.png",
-  youtube: "/logo/youtube.png",
-  xiaohongshu: "/logo/xiaohongshu.png",
-  zhihu: "/logo/zhihu.png",
-  kuaishou: "/logo/kuaishou.png",
-  weibo: "/logo/weibo.png",
-};
-
-export function platformLogoSrc(platform?: string) {
-  return PLATFORM_LOGO_PATHS[platform || ""] || PLATFORM_LOGO_PATHS.youtube;
-}
+import { DISPLAY_PLATFORMS, platformLogoSrc } from "@/lib/platforms";
 
 export function PlatformLogoImage({
   platform,
@@ -38,20 +26,6 @@ export function PlatformLogoImage({
   );
 }
 
-const PLATFORMS = [
-  { id: "bilibili", name: "Bilibili", logo: platformLogoSrc("bilibili") },
-  { id: "douyin", name: "Douyin", logo: platformLogoSrc("douyin") },
-  { id: "youtube", name: "YouTube", logo: platformLogoSrc("youtube") },
-  { id: "xiaohongshu", name: "Xiaohongshu", logo: platformLogoSrc("xiaohongshu") },
-  { id: "zhihu", name: "Zhihu", logo: platformLogoSrc("zhihu") },
-  { id: "kuaishou", name: "Kuaishou", logo: platformLogoSrc("kuaishou") },
-  { id: "weibo", name: "Weibo", logo: platformLogoSrc("weibo") },
-] as const;
-
-const DISPLAY_PLATFORMS = [
-  ...PLATFORMS,
-] as const;
-
 export function PlatformLogos({ size = 18 }: { size?: number }) {
   return (
     <div className="flex items-center gap-3">
@@ -67,5 +41,3 @@ export function PlatformLogos({ size = 18 }: { size?: number }) {
     </div>
   );
 }
-
-export { DISPLAY_PLATFORMS, PLATFORMS };

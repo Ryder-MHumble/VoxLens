@@ -29,6 +29,7 @@ def run_agentic_research(request: ResearchRequest) -> ResearchReport:
             is_demo=True,
             generated_at=datetime.now(),
             run_id=run_id,
+            research_mode=request.researchMode,
         )
         trace.append(AgentStep(
             name="SocialCrawlerAgent",
@@ -66,6 +67,7 @@ def run_agentic_research(request: ResearchRequest) -> ResearchReport:
         run_logs=logs,
         generated_at=datetime.now(),
         run_id=run_id,
+        research_mode=request.researchMode,
     )
     trace.append(AgentStep(
         name="ReportSynthesisAgent",

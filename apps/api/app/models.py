@@ -15,11 +15,13 @@ ReportStatus = Literal["queued", "running", "completed", "partial", "failed"]
 StageStatus = Literal["queued", "running", "completed", "partial", "failed", "skipped"]
 RunStatus = Literal["queued", "running", "completed", "partial", "failed", "cancelled"]
 ProviderMode = Literal["local", "online", "hybrid"]
+ResearchMode = Literal["auto", "consumer", "business"]
 
 
 class ResearchRequest(BaseModel):
     need: str = Field(..., min_length=1)
     query: str | None = None
+    researchMode: ResearchMode = "auto"
     platforms: list[PlatformId] = Field(default_factory=lambda: list(DEFAULT_PLATFORM_IDS))
     limitPerPlatform: int = Field(default=12, ge=1, le=50)
     commentsPerVideo: int = Field(default=12, ge=0, le=50)

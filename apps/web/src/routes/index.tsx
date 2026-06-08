@@ -8,7 +8,11 @@ import { PlatformLogos } from "@/components/PlatformLogos";
 import { WebSearchIcon } from "@/components/WebSearchIcon";
 import { useI18n } from "@/lib/i18n";
 
-const Grainient = lazy(() => import("@/components/Grainient").then((mod) => ({ default: mod.Grainient })));
+const Grainient = lazy(() =>
+  import("@/components/Grainient").then((mod) => ({ default: mod.Grainient })),
+);
+
+type ResearchMode = "consumer" | "business";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -27,6 +31,7 @@ function Landing() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [value, setValue] = useState("");
+  const [mode, setMode] = useState<ResearchMode>("consumer");
   const heroRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -47,10 +52,30 @@ function Landing() {
 
   const submit = () => {
     if (!value.trim()) return;
-    navigate({ to: "/results", search: { q: value.trim() } });
+    navigate({ to: "/results", search: { q: value.trim(), mode } });
   };
 
-  const suggestions = ["s1", "s2", "s3", "s4"] as const;
+  const modes = [
+    {
+      id: "consumer" as const,
+      eyebrow: t("mode_consumer_eyebrow"),
+      title: t("mode_consumer_title"),
+      description: t("mode_consumer_desc"),
+      note: t("mode_consumer_note"),
+    },
+    {
+      id: "business" as const,
+      eyebrow: t("mode_business_eyebrow"),
+      title: t("mode_business_title"),
+      description: t("mode_business_desc"),
+      note: t("mode_business_note"),
+    },
+  ];
+
+  const suggestions = {
+    consumer: ["consumer_s1", "consumer_s2", "consumer_s3"] as const,
+    business: ["business_s1", "business_s2", "business_s3"] as const,
+  };
 
   return (
     <div ref={heroRef} className="relative flex min-h-screen flex-col">
@@ -90,9 +115,9 @@ function Landing() {
         </div>
       </header>
 
-      <main className="flex flex-1 items-center justify-center px-6 pb-24">
-        <div data-hero className="w-full max-w-3xl text-center">
-          <h1 className="font-display text-5xl font-normal leading-[1.02] tracking-tight text-foreground sm:text-[82px]">
+      <main className="flex flex-1 items-start justify-center px-6 pb-16 pt-8 sm:items-center sm:pb-20 sm:pt-0">
+        <div data-hero className="w-full max-w-4xl text-center">
+          <h1 className="font-display text-5xl font-normal leading-[1.02] tracking-tight text-foreground sm:text-[78px]">
             <span className="italic text-gradient-violet">{t("hero_a")}</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base font-light leading-relaxed tracking-tight text-muted-foreground sm:text-lg">
@@ -101,25 +126,67 @@ function Landing() {
             {t("hero_b3")}
           </p>
 
+          <div
+            className="mx-auto mt-8 grid max-w-3xl gap-3 text-left sm:grid-cols-2"
+            role="group"
+            aria-label={t("mode_aria")}
+          >
+            {modes.map((item) => {
+              const active = mode === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setMode(item.id)}
+                  className={`glass rounded-3xl p-4 text-left transition hover:-translate-y-0.5 ${
+                    active ? "ring-2 ring-violet/35" : "opacity-80 hover:opacity-100"
+                  }`}
+                  style={active ? { boxShadow: "var(--shadow-glass)" } : undefined}
+                >
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/75">
+                    {item.eyebrow}
+                  </span>
+                  <span className="mt-2 block text-base font-semibold tracking-tight text-foreground">
+                    {item.title}
+                  </span>
+                  <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">
+                    {item.description}
+                  </span>
+                  <span className="mt-3 block text-xs font-medium text-foreground/75">
+                    {item.note}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
               submit();
             }}
-            className="relative mx-auto mt-12 max-w-2xl"
+            className="relative mx-auto mt-8 max-w-2xl"
           >
             <div className="search-shell glass flex items-center gap-3 rounded-full px-5 py-3.5 pr-3">
               <input
                 ref={inputRef}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder={t("placeholder")}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  submit();
+                }}
+                placeholder={t(
+                  mode === "consumer" ? "placeholder_consumer" : "placeholder_business",
+                )}
                 className="w-full bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/80 focus:outline-none"
               />
               <button
                 type="submit"
                 aria-label="Submit"
-                className="search-submit search-icon-button grid h-10 shrink-0 place-items-center"
+                className="search-icon-button grid h-10 w-10 shrink-0 place-items-center"
               >
                 <WebSearchIcon className="h-5 w-5" />
               </button>
@@ -131,12 +198,12 @@ function Landing() {
             <PlatformLogos />
           </div>
 
-          <div className="mt-12">
+          <div className="mt-10">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground/70">
-              {t("suggestion_title")}
+              {t(mode === "consumer" ? "suggestion_consumer_title" : "suggestion_business_title")}
             </p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {suggestions.map((k) => (
+              {suggestions[mode].map((k) => (
                 <button
                   key={k}
                   type="button"
