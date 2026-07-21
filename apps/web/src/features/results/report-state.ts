@@ -11,11 +11,11 @@ export function createDraftReport(
 ): ResearchReport {
   return {
     runId,
-    productName: "VoxLens",
+    productName: "VoxLens Studio",
     slogan:
       lang === "zh"
-        ? "\u89c6\u9891\u8bc1\u636e\uff0c\u53ef\u4fe1\u7814\u7a76"
-        : "Citable social-video research",
+        ? "\u4ece\u89c6\u9891\u91cc\u62ff\u8bc1\u636e\uff0c\u4e0d\u662f\u62ff\u7b54\u6848\u3002"
+        : "Evidence, not answers.",
     title: query,
     query,
     need: query,

@@ -18,10 +18,10 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "VoxLens - 研究，不止文字" },
+      { title: "VoxLens Studio - 从视频里拿证据，不是拿答案" },
       {
         name: "description",
-        content: "Cross-platform social-video research across Bilibili, Douyin and YouTube.",
+        content: "在可控环境中，把中文视频口播、字幕和评论转成可审计、可引用的研究证据。",
       },
     ],
   }),

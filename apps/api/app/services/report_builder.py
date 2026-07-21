@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections import Counter, defaultdict
 from datetime import datetime
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from app.models import (
@@ -38,6 +39,9 @@ from app.services.report_terms import (
     STOPWORDS,
 )
 
+if TYPE_CHECKING:
+    from app.services.llm_types import LlmSynthesisResult
+
 PLATFORM_META = platform_meta_for_report()
 
 
@@ -51,6 +55,8 @@ def build_report(
     generated_at: datetime | None = None,
     run_id: str | None = None,
     research_mode: str = "auto",
+    enable_llm_synthesis: bool = True,
+    llm_synthesis_result: LlmSynthesisResult | None = None,
 ) -> ResearchReport:
     generated_at = generated_at or datetime.now()
     run_id = run_id or f"run-{generated_at.strftime('%Y%m%d%H%M%S')}"
@@ -68,7 +74,7 @@ def build_report(
     warnings = _warnings(sources, run_logs, is_demo, zh)
     status = _report_status(sources, warnings, is_demo)
     coverage = _coverage(sources, run_logs)
-    report_kind = _infer_report_kind(" ".join(part for part in [need, query] if part), research_mode)
+    report_kind = infer_report_kind(" ".join(part for part in [need, query] if part), research_mode)
 
     takeaways = _takeaways(
         query=query,
@@ -98,7 +104,8 @@ def build_report(
     )
     llm_model = ""
     llm_insights: list[ReportInsight] = []
-    if sources and not is_demo:
+    llm_result = llm_synthesis_result
+    if llm_result is None and sources and not is_demo and enable_llm_synthesis:
         try:
             from app.services.llm_synthesis import synthesize_with_llm
 
@@ -110,15 +117,15 @@ def build_report(
                 coverage=coverage,
                 report_kind=report_kind,
             )
-            if llm_result and llm_result.sections:
-                takeaways = llm_result.takeaways or takeaways
-                sections = llm_result.sections
-                llm_insights = llm_result.insights
-                sections[0].metrics["llmGenerated"] = True
-                warnings.extend(llm_result.warnings)
-                llm_model = llm_result.model
         except Exception as exc:  # noqa: BLE001
             warnings.append(("LLM synthesis failed; used deterministic fallback report." if not zh else "LLM 生成失败，已使用确定性兜底报告。") + f" {str(exc)[:120]}")
+    if llm_result and llm_result.sections:
+        takeaways = llm_result.takeaways or takeaways
+        sections = llm_result.sections
+        llm_insights = llm_result.insights
+        sections[0].metrics["llmGenerated"] = True
+        warnings.extend(llm_result.warnings)
+        llm_model = llm_result.model
 
     _apply_citation_counts(sources, takeaways, sections)
     coverage.citedSources = sum(1 for source in sources if source.citationCount > 0)
@@ -149,7 +156,7 @@ def build_report(
 
     report = ResearchReport(
         runId=run_id,
-        slogan="视频证据，可信研究" if zh else "Citable social-video research",
+        slogan="从视频里拿证据，不是拿答案。" if zh else "Evidence, not answers.",
         title=_title_from_query(query, zh),
         query=query,
         need=need,
@@ -716,7 +723,7 @@ def _insights(
     return insights
 
 
-def _infer_report_kind(text: str, research_mode: str = "auto") -> str:
+def infer_report_kind(text: str, research_mode: str = "auto") -> str:
     mode = (research_mode or "auto").strip().lower()
     if mode == "consumer":
         return "consumer"

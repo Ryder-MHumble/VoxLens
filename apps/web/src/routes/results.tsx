@@ -56,8 +56,8 @@ export const Route = createFileRoute("/results")({
   component: Results,
   head: () => ({
     meta: [
-      { title: "VoxLens Research - 视频证据，可信研究" },
-      { name: "description", content: "Citable social-video evidence research results." },
+      { title: "VoxLens Studio Research - Evidence, not answers." },
+      { name: "description", content: "Auditable, citable social-video evidence research results." },
     ],
   }),
 });

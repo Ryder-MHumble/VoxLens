@@ -3,9 +3,9 @@ export type Lang = "en" | "zh";
 export type Dict = Record<string, { en: string; zh: string }>;
 
 export const dict: Dict = {
-  brand: { en: "VoxLens", zh: "VoxLens" },
+  brand: { en: "VoxLens Studio", zh: "VoxLens Studio" },
   nav_results: { en: "Demo result", zh: "示例报告" },
-  hero_a: { en: "Research beyond text", zh: "研究，不止文字" },
+  hero_a: { en: "Evidence, not answers.", zh: "从视频里拿证据，不是拿答案。" },
   hero_b1: {
     en: "Choose a buying-advice view or a professional research view. VoxLens turns videos, comments and transcripts into ",
     zh: "先选买前咨询，或选专业品类研究。VoxLens 会把视频、评论和字幕压缩成",

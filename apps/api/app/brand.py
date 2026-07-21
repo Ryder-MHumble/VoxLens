@@ -5,22 +5,22 @@ from typing import Any
 from app.platform_catalog import platform_brand_payload
 
 
-PRODUCT_NAME = "VoxLens"
+PRODUCT_NAME = "VoxLens Studio"
 
 
 BRAND: dict[str, Any] = {
     "productName": PRODUCT_NAME,
     "slogans": {
-        "zh": "研究，不止文字",
-        "en": "Research beyond text",
+        "zh": "从视频里拿证据，不是拿答案。",
+        "en": "Evidence, not answers.",
     },
     "positioning": {
-        "zh": "面向视频社媒的多模态 DeepResearch Agent",
-        "en": "A multimodal DeepResearch agent for social video evidence.",
+        "zh": "在你的环境里，把中文视频口播、字幕和评论转成可审计、可引用的研究证据。",
+        "en": "An evidence-first workspace that turns social-video speech, transcripts, and comments into auditable, citable research.",
     },
     "oneLiner": {
-        "zh": "让 AI 看完视频、评论和字幕，把创作者观点压缩成可验证的研究报告。",
-        "en": "Let AI watch videos, comments and transcripts, then turn creator signals into a verifiable research report.",
+        "zh": "提出研究问题，在可控环境中采集视频证据，经过证据抽取与验证后生成可引用报告。",
+        "en": "Ask a research question, collect evidence in a controlled environment, then extract, verify, and report it with citations.",
     },
     "personality": ["calm", "evidence-first", "multimodal", "source-aware"],
     "visualSystem": {

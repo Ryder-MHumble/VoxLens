@@ -1,4 +1,4 @@
-# Turn Social Video Evidence Into Citable Research
+# VoxLens Studio — Evidence, not answers.
 
 <p align="center">
   <a href="README.md">English</a> · <a href="README.zh-CN.md">中文</a>
@@ -6,7 +6,7 @@
 
 <img src="public/Banner.png" alt="Banner" width="720">
 
-> Evidence-first DeepResearch for social video. Give VoxLens a research question and it searches Bilibili, Douyin, YouTube, Xiaohongshu/RedNote, Zhihu, Kuaishou, Weibo and similar sources, samples titles, metadata, comments and transcripts/text snippets when available, then generates a citable report with source references and quality checks.
+> An evidence-first social-video research workspace. Ask a question, collect accessible evidence in your controlled environment, extract speech/transcript/comment signals, and generate an auditable report with citations and explicit quality limits.
 
 ## Important Risk Notice
 
@@ -22,9 +22,9 @@ See [LICENSE](LICENSE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [pa
 
 ## Positioning
 
-VoxLens is an evidence-first research product for social-video intelligence. It helps product, marketing, operations, content and research teams turn scattered signals from titles, descriptions, comments, transcripts, creator posts and platform metadata into business insights that can be cited, reviewed and reused.
+**VoxLens Studio turns social-video speech, transcripts, comments and metadata into auditable, citable research evidence.** It is designed for product, marketing, operations, content and research teams working in environments they control.
 
-The goal is not to crawl more data or imply that every frame has been understood. The goal is to convert accessible social-video evidence into structured reports with traceable sources and explicit uncertainty. Frame, audio and visual analysis can enhance the workflow later; the alpha is transcript/comment/context first.
+The product does not promise universal platform coverage or complete video understanding. Collection depends on user-authorized local/provider access; the current alpha is transcript/comment/context first, with the ASR execution layer still adapter-driven. Coverage, provenance and grounding checks can block LLM synthesis and fall back to deterministic evidence-limited reporting.
 
 ## Demo
 
@@ -98,7 +98,7 @@ Best for content strategy, short-video topics, creator partnership screening and
 | Evidence granularity | Usually web pages or search results | Comment, transcript/text, source and post-level evidence |
 | Users | Technical users and general researchers | Product, marketing, operations, content, research and business teams |
 
-VoxLens is not a replacement for a generic agent. It is a vertical research assistant for social-video evidence: find sources, sample the accessible context, cite what supports the claims and mark uncertainty when evidence is thin.
+VoxLens Studio is not a generic answer engine. It is a social-video evidence workspace: find sources, preserve artifacts, extract reviewable evidence units, verify report claims and mark uncertainty when evidence is thin.
 
 ## Recommended Query Style
 

@@ -15,7 +15,7 @@ from app.services.run_queue import RunManager
 
 load_dotenv()
 
-app = FastAPI(title="VoxLens API", version="0.1.0")
+app = FastAPI(title="VoxLens Studio API", version="0.1.0")
 run_manager = RunManager()
 
 app.add_middleware(
@@ -48,7 +48,7 @@ async def shutdown() -> None:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "product": "VoxLens"}
+    return {"status": "ok", "product": "VoxLens Studio"}
 
 
 @app.get("/api/brand")

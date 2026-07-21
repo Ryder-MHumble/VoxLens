@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from datetime import datetime
@@ -8,8 +9,8 @@ from uuid import uuid4
 
 from fastapi.encoders import jsonable_encoder
 
+from app.agents.coordinator import complete_research_pipeline, create_acquisition_batch, create_research_budget
 from app.agents.crawler import iter_crawl_sources
-from app.agents.evidence import prepare_evidence
 from app.agents.planner import build_research_plan
 from app.models import AgentStep, ResearchReport, ResearchRequest, ResearchStage
 from app.services.report_builder import build_report
@@ -17,9 +18,8 @@ from app.services.report_builder import build_report
 
 def stream_research(request: ResearchRequest, run_id: str | None = None) -> Iterator[str]:
     run_id = run_id or f"run-{uuid4().hex[:12]}"
-    query = request.query or request.need
+    query = (request.query or request.need).strip()
     trace: list[AgentStep] = []
-    started = time.perf_counter()
 
     stages = _initial_stages(request.lang)
     yield _event("run_started", {
@@ -55,6 +55,7 @@ def stream_research(request: ResearchRequest, run_id: str | None = None) -> Iter
                 generated_at=datetime.now(),
                 run_id=run_id,
                 research_mode=request.researchMode,
+                enable_llm_synthesis=False,
             )
             report.plan = plan
             report.agentTrace = trace
@@ -100,8 +101,45 @@ def stream_research(request: ResearchRequest, run_id: str | None = None) -> Iter
         yield _stage("search", search_status, 100 if sources else 70, f"Collected {len(sources)} sources.", stages)
 
         yield _stage("evidence", "running", 68, "正在整理证据、计算来源质量和引用优先级", stages)
-        ranked_sources, evidence_step = prepare_evidence(sources)
-        trace.append(evidence_step)
+        budget = create_research_budget(request)
+        acquisition_batch = create_acquisition_batch(sources[:budget.max_sources], logs)
+        budget.set_sources_collected(len(acquisition_batch.sources))
+        pipeline = asyncio.run(complete_research_pipeline(
+            request=request,
+            plan=plan,
+            acquisition_batch=acquisition_batch,
+            budget=budget,
+            run_id=run_id,
+        ))
+        if len(pipeline.acquisition_batch.sources) != len(sources):
+            yield _event("sources", {
+                "runId": run_id,
+                "target": "coverage_retry",
+                "sources": pipeline.acquisition_batch.sources,
+                "progress": 66,
+                "message": f"Coverage retry produced {len(pipeline.acquisition_batch.sources)} unique sources in total.",
+            })
+            yield _stage(
+                "search",
+                "completed" if pipeline.acquisition_batch.sources else "failed",
+                100 if pipeline.acquisition_batch.sources else 70,
+                f"Collected {len(pipeline.acquisition_batch.sources)} unique sources after coverage retry.",
+                stages,
+            )
+        trace.extend(pipeline.steps)
+        evidence_step = next(
+            step for step in pipeline.steps if step.name == "EvidenceStructuringAgent"
+        )
+        ranked_sources = pipeline.verified_report.report.sources
+        for step in pipeline.steps:
+            if step.name in {"EvidenceStructuringAgent", "ReportSynthesisAgent", "ClaimGroundingVerifierAgent"}:
+                continue
+            yield _event("agent_step", {
+                "runId": run_id,
+                "step": step,
+                "progress": 72 if step.name != "ReportSynthesisAgent" else 84,
+                "message": step.message,
+            })
         yield _event("evidence", {
             "runId": run_id,
             "step": evidence_step,
@@ -112,38 +150,18 @@ def stream_research(request: ResearchRequest, run_id: str | None = None) -> Iter
         evidence_status = "completed" if ranked_sources else "failed"
         yield _stage("evidence", evidence_status, 100 if ranked_sources else 60, evidence_step.message, stages)
 
-        min_sources = request.minLiveSources or 1
-        if len(ranked_sources) < min_sources:
-            guard = AgentStep(
-                name="FallbackGuardAgent",
-                role="Marks low-evidence runs without swapping in canned demo data.",
-                status="partial",
-                message=f"Only {len(ranked_sources)} live sources collected; requested at least {min_sources}.",
-                metrics={"liveSources": len(ranked_sources), "minSources": min_sources},
-            )
-            trace.append(guard)
-            yield _event("agent_step", {"runId": run_id, "step": guard, "progress": 80, "message": guard.message})
-
         yield _stage("synthesis", "running", 84, "正在生成目录、结论和分段报告", stages)
-        report = build_report(
-            need=request.need,
-            query=query,
-            lang=request.lang,
-            sources=ranked_sources,
-            run_logs=logs,
-            generated_at=datetime.now(),
-            run_id=run_id,
-            research_mode=request.researchMode,
-        )
+        for step in pipeline.steps:
+            if step.name not in {"ReportSynthesisAgent", "ClaimGroundingVerifierAgent"}:
+                continue
+            yield _event("agent_step", {
+                "runId": run_id,
+                "step": step,
+                "progress": 84,
+                "message": step.message,
+            })
+        report = pipeline.verified_report.report
         report.plan = plan
-        trace.append(AgentStep(
-            name="ReportSynthesisAgent",
-            role="Builds the structured, citation-ready DeepResearch report JSON.",
-            status="ok" if ranked_sources else "partial",
-            message="Generated report outline, takeaways, source metadata and streamable sections.",
-            elapsedSec=round(time.perf_counter() - started, 3),
-            metrics={"sections": len(report.sections), "sources": len(report.sources)},
-        ))
         report.agentTrace = trace
         yield from _stream_report(report, stages)
     except Exception as exc:  # noqa: BLE001

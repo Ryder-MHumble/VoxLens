@@ -55,10 +55,10 @@ export function ReportExportSheet({ report, title }: { report: ResearchReport; t
               />
             </span>
             <div>
-              <p className="text-2xl font-bold tracking-tight">{report.productName || "VoxLens"}</p>
+              <p className="text-2xl font-bold tracking-tight">{report.productName || "VoxLens Studio"}</p>
               <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[#7f7595]">
                 {report.slogan ||
-                  (report.lang === "zh" ? "视频证据，可信研究" : "Citable social-video research")}
+                  (report.lang === "zh" ? "从视频里拿证据，不是拿答案。" : "Evidence, not answers.")}
               </p>
             </div>
           </div>
@@ -270,7 +270,7 @@ export function ReportExportSheet({ report, title }: { report: ResearchReport; t
 
         <div className="mt-10 flex items-center justify-between border-t border-[#ebe3f2] pt-6 text-xs text-[#8a7a99]">
           <span>
-            {report.productName || "VoxLens"} · {report.slogan || "Citable social-video research"}
+            {report.productName || "VoxLens Studio"} · {report.slogan || "Evidence, not answers."}
           </span>
           <span>{report.runId || "local-report"}</span>
         </div>

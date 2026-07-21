@@ -2,7 +2,7 @@
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.platform_catalog import DEFAULT_PLATFORM_IDS
 
@@ -16,6 +16,9 @@ StageStatus = Literal["queued", "running", "completed", "partial", "failed", "sk
 RunStatus = Literal["queued", "running", "completed", "partial", "failed", "cancelled"]
 ProviderMode = Literal["local", "online", "hybrid"]
 ResearchMode = Literal["auto", "consumer", "business"]
+EvidenceModality = Literal["speech", "subtitle", "comment", "text", "ocr", "metadata"]
+ClaimRelation = Literal["support", "contradict", "insufficient"]
+EvidenceQualityLabel = Literal["Strong", "Moderate", "Weak", "Insufficient"]
 
 
 class ResearchRequest(BaseModel):
@@ -81,6 +84,105 @@ class Source(BaseModel):
     whyRelevant: str = ""
     status: Literal["collected", "ranked", "cited", "weak"] = "collected"
     collectedAt: str = ""
+
+
+class Artifact(BaseModel):
+    """Represent one immutable capture or extraction version of a source."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    source_id: int
+    artifact_type: str = "raw"
+    content_hash: str
+    captured_at: str
+    collector_version: str
+    collector_name: str = ""
+    storage_uri: str = ""
+    mime_type: str = ""
+    raw_data: Any = None
+    raw_metadata: dict[str, Any] = Field(default_factory=dict)
+    full_transcript: str = ""
+    transcript_segments: tuple[TranscriptSegment, ...] = ()
+    parent_artifact_id: str | None = None
+
+
+class EvidenceUnit(BaseModel):
+    """Represent the smallest independently reviewable and citable evidence span."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    text: str
+    modality: EvidenceModality
+    source_id: int
+    artifact_id: str
+    normalized_text: str = ""
+    start_ms: int | None = Field(default=None, ge=0)
+    end_ms: int | None = Field(default=None, ge=0)
+    asr_confidence: float | None = Field(default=None, ge=0, le=1)
+    ocr_confidence: float | None = Field(default=None, ge=0, le=1)
+    comment_id: str = ""
+    parent_comment_id: str = ""
+    frame_index: int | None = Field(default=None, ge=0)
+    speaker: str = ""
+    author: str = ""
+    extraction_method: str = ""
+    language: str = ""
+    content_hash: str = ""
+    review_status: Literal["unreviewed", "low_confidence", "verified", "rejected"] = "unreviewed"
+
+    def citation_ref(self, platform: PlatformId, platform_object_id: str) -> str:
+        """Return a stable source-, timestamp-, or comment-level citation reference."""
+
+        platform_name = platform.upper()
+        if self.comment_id:
+            return f"[{platform_name}:{platform_object_id}/comment/{self.comment_id}]"
+        if self.start_ms is not None:
+            end_ms = self.end_ms if self.end_ms is not None else self.start_ms
+            return f"[{platform_name}:{platform_object_id}@{_format_timestamp(self.start_ms)}-{_format_timestamp(end_ms)}]"
+        return f"[{platform_name}:{platform_object_id}]"
+
+
+class Claim(BaseModel):
+    """Represent a research conclusion grounded in sources and evidence units."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    claim_text: str
+    claim_type: str
+    confidence_label: EvidenceQualityLabel = "Insufficient"
+    source_ids: tuple[int, ...] = ()
+    evidence_unit_ids: tuple[str, ...] = ()
+    research_run_id: str = ""
+    review_status: Literal["unreviewed", "verified", "rejected"] = "unreviewed"
+
+
+class ClaimEvidence(BaseModel):
+    """Represent the assessed relationship between a claim and one evidence unit."""
+
+    model_config = ConfigDict(frozen=True)
+
+    claim_id: str
+    evidence_unit_id: str
+    relation: ClaimRelation
+    relevance_score: float = Field(ge=0, le=1)
+    directness_score: float | None = Field(default=None, ge=0, le=1)
+    independence_cluster: str = ""
+    freshness_score: float | None = Field(default=None, ge=0, le=1)
+    credibility_score: float | None = Field(default=None, ge=0, le=1)
+    rationale: str = ""
+
+
+class EvidenceQualityAssessment(BaseModel):
+    """Expose categorical evidence quality with dimension-level reasons."""
+
+    model_config = ConfigDict(frozen=True)
+
+    label: EvidenceQualityLabel
+    dimensions: dict[str, Literal["strong", "moderate", "weak", "insufficient"]]
+    reasons: list[str] = Field(default_factory=list)
 
 
 class PlatformSummary(BaseModel):
@@ -282,7 +384,7 @@ class QualityEvaluation(BaseModel):
 
 class ResearchReport(BaseModel):
     runId: str = ""
-    productName: str = "VoxLens"
+    productName: str = "VoxLens Studio"
     slogan: str
     title: str
     query: str
@@ -323,3 +425,14 @@ class RunRecord(BaseModel):
     eventCount: int = 0
     report: ResearchReport | None = None
     error: str = ""
+
+
+def _format_timestamp(milliseconds: int) -> str:
+    """Format milliseconds as a compact citation timestamp."""
+
+    total_seconds = max(0, milliseconds // 1000)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
