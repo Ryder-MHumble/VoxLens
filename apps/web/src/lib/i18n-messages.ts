@@ -5,45 +5,22 @@ export type Dict = Record<string, { en: string; zh: string }>;
 export const dict: Dict = {
   brand: { en: "VoxLens Studio", zh: "VoxLens Studio" },
   nav_results: { en: "Demo result", zh: "示例报告" },
-  hero_a: { en: "Evidence, not answers.", zh: "从视频里拿证据，不是拿答案。" },
-  hero_b1: {
-    en: "Choose a buying-advice view or a professional research view. VoxLens turns videos, comments and transcripts into ",
-    zh: "先选买前咨询，或选专业品类研究。VoxLens 会把视频、评论和字幕压缩成",
+  hero_a: {
+    en: "Ask videos. Know.",
+    zh: "问视频，得答案",
   },
-  hero_b2: { en: "answers with traceable evidence", zh: "带出处的答案" },
+  hero_b1: {
+    en: "VoxLens reads videos, comments and transcripts across platforms, then returns ",
+    zh: "输入问题，VoxLens 自动看视频、读评论，给你",
+  },
+  hero_b2: { en: "cited answers", zh: "带出处的结论" },
   hero_b3: { en: ".", zh: "。" },
   placeholder: {
-    en: "What do you want to research across videos?",
-    zh: "你想跨平台研究什么问题？",
-  },
-  placeholder_consumer: {
-    en: "I want to buy a phone/headphones/coffee machine...",
-    zh: "我想买手机/耳机/咖啡机，帮我少看测评直接判断...",
-  },
-  placeholder_business: {
-    en: "Research this product/category with a cited report...",
-    zh: "按专业模板研究这个产品/品类，并给出出处...",
+    en: "Ask about a product or category, e.g. which headphones should I buy?",
+    zh: "问购买建议或品类研究，比如：降噪耳机怎么选？",
   },
   searching_across: { en: "Searching across", zh: "默认覆盖" },
   suggestion_title: { en: "Try one of these", zh: "可以先试试这些问题" },
-  mode_aria: { en: "Research mode", zh: "研究模式" },
-  mode_consumer_eyebrow: { en: "For shoppers", zh: "C 端" },
-  mode_consumer_title: { en: "Buying advice", zh: "消费购物咨询" },
-  mode_consumer_desc: {
-    en: "Ask like a real buyer: needs, budget, tradeoffs. No fixed business template.",
-    zh: "站在用户视角提问：预算、使用场景、纠结点。不套固定 B 端模板。",
-  },
-  mode_consumer_note: {
-    en: "Output: plain recommendation + caveats",
-    zh: "输出：直接建议 + 避坑点",
-  },
-  mode_business_eyebrow: { en: "For teams", zh: "B 端" },
-  mode_business_title: { en: "Product/category research", zh: "产品/品类研究" },
-  mode_business_desc: {
-    en: "Use a stable research template for market, users, competitors, risks and opportunities.",
-    zh: "使用固定专业模板，覆盖市场、用户、竞品、风险与机会。",
-  },
-  mode_business_note: { en: "Output: cited research report", zh: "输出：带出处研究报告" },
   suggestion_consumer_title: { en: "Consumer prompts", zh: "消费咨询示例" },
   suggestion_business_title: { en: "Business research prompts", zh: "品类研究示例" },
   consumer_s1: {

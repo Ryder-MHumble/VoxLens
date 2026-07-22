@@ -87,6 +87,24 @@
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
 }
+@keyframes hero-gradient-dance {
+  0% {
+    background-position: 18% 46%, 82% 42%, 0% 54%;
+    filter: saturate(1.02) contrast(1);
+  }
+  28% {
+    background-position: 32% 34%, 64% 58%, 42% 40%;
+    filter: saturate(1.12) contrast(1.02);
+  }
+  62% {
+    background-position: 58% 62%, 38% 30%, 86% 66%;
+    filter: saturate(1.05) contrast(1.01);
+  }
+  100% {
+    background-position: 76% 38%, 20% 64%, 132% 48%;
+    filter: saturate(1.14) contrast(1.03);
+  }
+}
 @keyframes breathe-purple {
   0% { transform: scale(1) translate(0, 0); opacity: 0.75; }
   100% { transform: scale(1.15) translate(-3%, 3%); opacity: 1; }
@@ -306,12 +324,24 @@
 }
 
 .text-gradient-violet {
-  background: linear-gradient(90deg, oklch(0.74 0.15 312), oklch(0.67 0.18 292), oklch(0.82 0.12 58));
-  background-size: 200% 100%;
+  background:
+    radial-gradient(circle at 18% 46%, oklch(0.72 0.18 296), transparent 33%),
+    radial-gradient(circle at 82% 42%, oklch(0.86 0.13 58), transparent 35%),
+    linear-gradient(
+      112deg,
+      oklch(0.68 0.19 292),
+      oklch(0.78 0.15 323) 24%,
+      oklch(0.83 0.12 24) 48%,
+      oklch(0.85 0.13 66) 62%,
+      oklch(0.72 0.18 286) 82%,
+      oklch(0.8 0.14 312)
+    );
+  background-position: 18% 46%, 82% 42%, 0% 54%;
+  background-size: 165% 160%, 155% 155%, 240% 210%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: shimmer 6s linear infinite;
+  animation: hero-gradient-dance 8.8s cubic-bezier(0.42, 0, 0.22, 1) infinite alternate;
 }
 
 .font-display { font-family: var(--font-display); font-feature-settings: "liga", "dlig", "swsh"; letter-spacing: -0.01em; }
@@ -423,11 +453,21 @@
 }
 .search-icon-button {
   border-radius: 0;
+  color: color-mix(in oklab, var(--foreground) 78%, var(--violet) 22%);
+  transition: color 0.22s ease, transform 0.22s ease;
 }
 .search-icon-button svg {
   display: block;
   filter: drop-shadow(0 3px 8px color-mix(in oklab, #d355ca 22%, transparent));
-  transition: filter 0.2s ease;
+  transition: filter 0.22s ease;
+}
+.search-shell:focus-within .search-icon-button {
+  color: color-mix(in oklab, var(--violet) 68%, white 32%);
+}
+.search-shell:focus-within .search-icon-button svg {
+  filter:
+    drop-shadow(0 3px 10px color-mix(in oklab, var(--violet) 34%, transparent))
+    drop-shadow(0 0 16px color-mix(in oklab, white 32%, transparent));
 }
 .search-icon-button:hover,
 .search-icon-button:focus-visible {
@@ -1015,4 +1055,10 @@ body:has(.results-shell) {
   display: none;
   width: 0;
   height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-gradient-violet {
+    animation: none;
+  }
 }
