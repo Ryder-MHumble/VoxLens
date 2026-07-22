@@ -384,6 +384,9 @@ class DouYinCrawler(AbstractCrawler):
             return browser_context
 
         except Exception as e:
+            if getattr(config, "CDP_REQUIRE_EXISTING_BROWSER", False):
+                utils.logger.error(f"[DouYinCrawler] CDP模式启动失败，不回退到标准模式: {e}")
+                raise
             utils.logger.error(f"[DouYinCrawler] CDP模式启动失败，回退到标准模式: {e}")
             # Fall back to standard mode
             chromium = playwright.chromium

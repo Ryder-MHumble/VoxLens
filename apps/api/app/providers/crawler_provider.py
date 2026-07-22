@@ -156,6 +156,7 @@ def _search_with_crawler(
         env_extra = {
             "VOXLENS_MC_MAX_NOTES": str(max_notes),
             "VOXLENS_MC_SLEEP_SEC": os.getenv("VOXLENS_MC_SLEEP_SEC", "1"),
+            **_local_browser_env(),
         }
         code, stdout, stderr, elapsed = run_command(cmd, cwd=CRAWLER_ROOT, timeout=420, env_extra=env_extra)
         content_rows, comment_rows = _read_crawler_jsonl(save_root, config["folder"], limit)
@@ -166,7 +167,7 @@ def _search_with_crawler(
         ]
         note = "" if sources else (stderr or stdout or "no results")[:240]
         if login_type == "qrcode" and auth_mode in {"auto", "existing_browser"}:
-            note = (note + " " if note else "") + f"auth={auth_mode} uses VoxLens crawler runtime existing-browser/CDP when Chrome:9222 is available, then QR fallback; maxNotes={max_notes}; parallelVideos={_safe_parallelism(video_parallelism)}"
+            note = (note + " " if note else "") + f"auth={auth_mode} uses a local Chrome/CDP persistent profile; if Chrome:9222 is already available, VoxLens attaches to it; maxNotes={max_notes}; parallelVideos={_safe_parallelism(video_parallelism)}"
         return sources, RunLog(provider="crawler", platform=platform, ok=bool(sources) or code == 0, count=len(sources), elapsedSec=elapsed, note=note[:260])
     except Exception as exc:  # noqa: BLE001
         return [], RunLog(provider="crawler", platform=platform, ok=False, count=0, note=str(exc)[:240])
@@ -180,6 +181,20 @@ def _resolve_login(platform: PlatformName, auth_mode: AuthMode) -> tuple[str, st
         return "cookie", ""
     # VoxLens crawler runtime's config has CDP existing-browser mode enabled; qrcode remains a safe fallback.
     return "qrcode", ""
+
+
+def _local_browser_env() -> dict[str, str]:
+    """Default crawler subprocesses to real Chrome/CDP with persistent local login state."""
+    return {
+        "VOXLENS_MC_ENABLE_CDP": os.getenv("VOXLENS_MC_ENABLE_CDP", "1"),
+        "VOXLENS_MC_CDP_CONNECT_EXISTING": os.getenv("VOXLENS_MC_CDP_CONNECT_EXISTING", "1"),
+        "VOXLENS_MC_CDP_REQUIRE_EXISTING": os.getenv("VOXLENS_MC_CDP_REQUIRE_EXISTING", "1"),
+        "VOXLENS_MC_SAVE_LOGIN_STATE": os.getenv("VOXLENS_MC_SAVE_LOGIN_STATE", "1"),
+        "VOXLENS_MC_AUTO_CLOSE_BROWSER": os.getenv("VOXLENS_MC_AUTO_CLOSE_BROWSER", "0"),
+        "VOXLENS_MC_HEADLESS": os.getenv("VOXLENS_MC_HEADLESS", "0"),
+        "VOXLENS_MC_CDP_HEADLESS": os.getenv("VOXLENS_MC_CDP_HEADLESS", "0"),
+        "VOXLENS_MC_BROWSER_LAUNCH_TIMEOUT": os.getenv("VOXLENS_MC_BROWSER_LAUNCH_TIMEOUT", "60"),
+    }
 
 
 def _cookie_for_platform(platform: PlatformName) -> str:

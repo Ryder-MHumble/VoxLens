@@ -444,6 +444,9 @@ class XiaoHongShuCrawler(AbstractCrawler):
             return browser_context
 
         except Exception as e:
+            if getattr(config, "CDP_REQUIRE_EXISTING_BROWSER", False):
+                utils.logger.error(f"[XiaoHongShuCrawler] CDP mode launch failed, not falling back: {e}")
+                raise
             utils.logger.error(f"[XiaoHongShuCrawler] CDP mode launch failed, falling back to standard mode: {e}")
             # Fall back to standard mode
             chromium = playwright.chromium

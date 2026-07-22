@@ -78,6 +78,10 @@ BROWSER_LAUNCH_TIMEOUT = 60
 # 这种方式反检测效果最好，因为直接使用用户真实浏览器的所有 Cookie、扩展和浏览历史
 CDP_CONNECT_EXISTING = True
 
+# 是否强制只使用已经打开并启用 CDP 的真实浏览器
+# 开启后，如果 9222 端口没有可连接的真实 Chrome，将直接报错，不再自动启动新 profile 或回退 Playwright
+CDP_REQUIRE_EXISTING_BROWSER = True
+
 # 程序结束时是否自动关闭浏览器
 # 设置为 False 可以保持浏览器运行，方便调试
 AUTO_CLOSE_BROWSER = True

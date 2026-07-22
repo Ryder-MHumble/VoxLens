@@ -119,7 +119,7 @@ async def async_cleanup() -> None:
     if crawler:
         if getattr(crawler, "cdp_manager", None):
             try:
-                await crawler.cdp_manager.cleanup(force=True)
+                await crawler.cdp_manager.cleanup(force=False)
             except Exception as e:
                 error_msg = str(e).lower()
                 if "closed" not in error_msg and "disconnected" not in error_msg:

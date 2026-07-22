@@ -384,6 +384,11 @@ class KuaishouCrawler(AbstractCrawler):
             return browser_context
 
         except Exception as e:
+            if getattr(config, "CDP_REQUIRE_EXISTING_BROWSER", False):
+                utils.logger.error(
+                    f"[KuaishouCrawler] CDP mode launch failed, not falling back: {e}"
+                )
+                raise
             utils.logger.error(
                 f"[KuaishouCrawler] CDP mode launch failed, fallback to standard mode: {e}"
             )
