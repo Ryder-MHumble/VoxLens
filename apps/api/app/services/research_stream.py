@@ -12,11 +12,16 @@ from fastapi.encoders import jsonable_encoder
 from app.agents.coordinator import complete_research_pipeline, create_acquisition_batch, create_research_budget
 from app.agents.crawler import iter_crawl_sources
 from app.agents.planner import build_research_plan
+from app.harness import FileHarnessStore
 from app.models import AgentStep, ResearchReport, ResearchRequest, ResearchStage
 from app.services.report_builder import build_report
 
 
-def stream_research(request: ResearchRequest, run_id: str | None = None) -> Iterator[str]:
+def stream_research(
+    request: ResearchRequest,
+    run_id: str | None = None,
+    harness_store: FileHarnessStore | None = None,
+) -> Iterator[str]:
     run_id = run_id or f"run-{uuid4().hex[:12]}"
     query = (request.query or request.need).strip()
     trace: list[AgentStep] = []
@@ -110,6 +115,7 @@ def stream_research(request: ResearchRequest, run_id: str | None = None) -> Iter
             acquisition_batch=acquisition_batch,
             budget=budget,
             run_id=run_id,
+            harness_store=harness_store,
         ))
         if len(pipeline.acquisition_batch.sources) != len(sources):
             yield _event("sources", {

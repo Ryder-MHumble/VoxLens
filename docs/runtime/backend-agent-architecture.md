@@ -9,11 +9,14 @@ flowchart LR
     C --> D["Provider Registry"]
     D --> E["Local Dev Providers<br/>OpenCLI / VoxLens Crawler"]
     D --> F["Online Provider Adapter"]
-    E --> G["EvidenceStructuringAgent"]
-    F --> G
-    G --> H["OpenRouter LLM Synthesis"]
-    H --> I["Quality Evaluation"]
-    I --> J["Persisted ResearchReport"]
+    E --> AB["AcquisitionBatch"]
+    F --> AB
+    AB --> RH["Research Harness<br/>post-acquisition operator"]
+    RH --> G["EvidenceStructuringAgent"]
+    G --> LS["OpenRouter LLM Synthesis"]
+    LS --> I["Quality Evaluation"]
+    I --> V["Persisted Evidence Snapshot"]
+    V --> J["Persisted ResearchReport"]
     J --> K["Reopen / Stream Replay"]
 ```
 
@@ -114,6 +117,22 @@ runtime/runs/research/{runId}/
   record.json
   events.jsonl
   report.json
+  harness.json
+  harness-events.jsonl
+  checkpoints/
+    research_pipeline.json
+  snapshot.json
+  snapshots/
+    {generation}/
+      artifacts.jsonl
+      evidence.jsonl
+      claims.jsonl
+      claim-evidence.jsonl
+      verifications.jsonl
 ```
 
-This can be replaced with Postgres/Redis/S3 without changing the frontend contract.
+Harness JSON documents use atomic sibling replacement. A pipeline snapshot is written into a new immutable generation directory, then exposed by atomically replacing `snapshot.json`; a failed partial write cannot replace the previously active generation. Snapshot JSONL records include a schema version and payload hash. The current implementation assumes one writer per run and does not require a database, Redis, object storage, or a graph store.
+
+Multi-file readers use `FileHarnessStore.read_pipeline_snapshot()` to resolve `snapshot.json` once and keep every file on the same generation. The public `ResearchReport` and SSE event contracts do not expose these internal files. They remain inspectable offline and provide the persistence boundary for future stage-level resume and deterministic replay.
+
+The current queued-run adapter starts the harness after planning and acquisition, and registers the post-acquisition pipeline as one non-resumable operator. It does not claim that provider calls can currently be replayed or resumed.

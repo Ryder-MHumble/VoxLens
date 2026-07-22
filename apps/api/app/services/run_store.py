@@ -127,7 +127,12 @@ class RunStore:
             if report_payload:
                 report = ResearchReport.model_validate(report_payload)
                 self.write_report(run_id, report)
-                record.status = "partial" if report.status == "partial" else "completed"
+                if report.status == "failed":
+                    record.status = "failed"
+                elif report.status == "partial":
+                    record.status = "partial"
+                else:
+                    record.status = "completed"
                 record.progress = 100
                 record.completedAt = record.updatedAt
         elif event.get("type") == "error":

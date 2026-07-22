@@ -13,6 +13,25 @@ The agent layer enforces an evidence-first flow without changing the public `Res
 
 The streaming path retains `iter_crawl_sources()` so it can emit provider progress, then converts the collected values into the same `AcquisitionBatch` used by the synchronous path.
 
+## Research Harness
+
+Queued runs wrap the shared post-acquisition pipeline in `app.harness.ResearchHarness`. The harness is intentionally separate from crawler, report, and API models. It provides:
+
+- typed operators with declared dependencies and versions;
+- deterministic sequential graph execution;
+- `execute`, `resume`, and fail-closed `replay` modes;
+- atomic file checkpoints with input and output hashes;
+- explicit running, completed, resumed, skipped, blocked, and failed lifecycle records;
+- persisted Artifact, EvidenceUnit, Claim, ClaimEvidence, and verification snapshots behind an atomic generation pointer.
+
+The initial production adapter registers the existing shared pipeline as one non-resumable operator. This establishes the harness and evidence-persistence contracts without rewriting the Coordinator. Later changes may split coverage, evidence, synthesis, and grounding into separate resumable operators while preserving the same public report.
+
+Replay never invokes an operator. It succeeds only when every requested operator has a matching checkpoint version, input hash, and loader.
+
+Loaders are pure deserializers by contract. They must not call providers, mutate external state, or perform LLM work.
+
+Pipeline snapshots are committed as immutable generation directories. Multi-file readers call `FileHarnessStore.read_pipeline_snapshot()` so `snapshot.json` is resolved once for the complete read. A process or disk failure while writing one of the five evidence files leaves the previous complete snapshot active.
+
 ## Artifact Contract
 
 The stage contracts live in `apps/api/app/agents/artifacts.py`:
@@ -109,3 +128,9 @@ PYTHONPATH=apps/api python3 scripts/verify_agent_architecture.py
 ```
 
 The six offline checks cover contract immutability and serialization compatibility, budget/stop policy, coverage, grounding, orchestrator behavior, and the complete shared flow.
+
+Harness unit and integration tests run with:
+
+```bash
+PYTHONPATH=apps/api apps/api/.venv/bin/python -m unittest apps.api.tests.test_research_harness -v
+```

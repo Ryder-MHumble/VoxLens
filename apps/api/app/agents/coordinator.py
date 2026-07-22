@@ -19,6 +19,7 @@ from app.agents.evidence import assess_evidence_quality, prepare_evidence
 from app.agents.grounding_verifier import ClaimGroundingVerifier, ClaimVerification
 from app.agents.llm_orchestrator import LLMCallSpec, LLMOrchestrator
 from app.agents.planner import analyze_research_question, build_research_plan
+from app.harness import FileHarnessStore, HarnessOperator, ResearchHarness
 from app.models import (
     AgentStep,
     Artifact,
@@ -127,6 +128,57 @@ async def complete_research_pipeline(
     acquisition_batch: AcquisitionBatch,
     budget: ResearchBudget,
     run_id: str,
+    harness_store: FileHarnessStore | None = None,
+) -> PipelineResult:
+    """Run the post-acquisition pipeline directly or through the file-backed harness."""
+
+    if harness_store is None:
+        return await _complete_research_pipeline(
+            request=request,
+            plan=plan,
+            acquisition_batch=acquisition_batch,
+            budget=budget,
+            run_id=run_id,
+        )
+
+    async def execute_pipeline(_context: object) -> PipelineResult:
+        result = await _complete_research_pipeline(
+            request=request,
+            plan=plan,
+            acquisition_batch=acquisition_batch,
+            budget=budget,
+            run_id=run_id,
+        )
+        harness_store.write_pipeline_snapshot(run_id, result)
+        return result
+
+    outputs = await ResearchHarness(harness_store, run_id).run(
+        [HarnessOperator(
+            name="research_pipeline",
+            version="1",
+            run=execute_pipeline,
+            dump=_pipeline_checkpoint_payload,
+            resumable=False,
+        )],
+        initial_values=_pipeline_harness_inputs(
+            request=request,
+            plan=plan,
+            acquisition_batch=acquisition_batch,
+            budget=budget,
+            run_id=run_id,
+        ),
+        mode="execute",
+    )
+    return outputs["research_pipeline"]
+
+
+async def _complete_research_pipeline(
+    *,
+    request: ResearchRequest,
+    plan: ResearchPlan,
+    acquisition_batch: AcquisitionBatch,
+    budget: ResearchBudget,
+    run_id: str,
 ) -> PipelineResult:
     """Run the common artifact, coverage, evidence, synthesis, and grounding stages."""
 
@@ -229,6 +281,52 @@ async def complete_research_pipeline(
         verified_report=verified_report,
         steps=tuple(steps),
     )
+
+
+def _pipeline_checkpoint_payload(result: PipelineResult) -> dict[str, Any]:
+    """Persist a compact stage summary while domain entities live in JSONL snapshots."""
+
+    return {
+        "sources": len(result.acquisition_batch.sources),
+        "artifacts": len(result.acquisition_batch.raw_artifacts),
+        "evidenceUnits": len(result.evidence_batch.evidence_units),
+        "claims": len(result.claim_set.claims),
+        "verifications": len(result.verified_report.verification_results),
+        "reportStatus": result.verified_report.report.status,
+        "coverageGatePassed": result.verified_report.coverage_gate_passed,
+        "budgetRemaining": result.verified_report.budget_remaining,
+    }
+
+
+def _pipeline_harness_inputs(
+    *,
+    request: ResearchRequest,
+    plan: ResearchPlan,
+    acquisition_batch: AcquisitionBatch,
+    budget: ResearchBudget,
+    run_id: str,
+) -> dict[str, Any]:
+    """Capture every logical input read by the post-acquisition operator."""
+
+    return {
+        "runId": run_id,
+        "request": request,
+        "plan": plan,
+        "acquisitionBatch": acquisition_batch,
+        "budget": {
+            "maxSources": budget.max_sources,
+            "maxAsrMinutes": budget.max_asr_minutes,
+            "maxLlmCalls": budget.max_llm_calls,
+            "maxLlmTokens": budget.max_llm_tokens,
+            "maxElapsedSeconds": budget.max_elapsed_seconds,
+            "minSourcesForSynthesis": budget.min_sources_for_synthesis,
+            "minPlatformsForSynthesis": budget.min_platforms_for_synthesis,
+            "sourcesCollected": budget.sources_collected,
+            "asrMinutesUsed": budget.asr_minutes_used,
+            "llmCallsUsed": budget.llm_calls_used,
+            "llmTokensUsed": budget.llm_tokens_used,
+        },
+    }
 
 
 def create_plan_spec(request: ResearchRequest, plan: ResearchPlan) -> PlanSpec:

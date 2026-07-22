@@ -7,6 +7,7 @@ from typing import Any, AsyncIterator
 
 from fastapi import HTTPException
 
+from app.harness import FileHarnessStore
 from app.models import ResearchRequest, RunRecord
 from app.services.research_stream import stream_research
 from app.services.run_store import TERMINAL_STATUSES, RunStore
@@ -18,6 +19,7 @@ INTERRUPTED_RUN_MESSAGE = "Run interrupted by backend restart or shutdown. Pleas
 class RunManager:
     def __init__(self, store: RunStore | None = None) -> None:
         self.store = store or RunStore()
+        self.harness_store = FileHarnessStore(self.store.root)
         self.queue: asyncio.Queue[str] = asyncio.Queue()
         self.worker: asyncio.Task[None] | None = None
         self.loop: asyncio.AbstractEventLoop | None = None
@@ -92,7 +94,11 @@ class RunManager:
             return
         self.store.update_status(run_id, "running", progress=max(1, record.progress))
         try:
-            for raw in stream_research(record.request, run_id=run_id):
+            for raw in stream_research(
+                record.request,
+                run_id=run_id,
+                harness_store=self.harness_store,
+            ):
                 if self._is_terminal(run_id):
                     return
                 event = _parse_sse(raw)
